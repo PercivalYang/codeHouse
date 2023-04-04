@@ -1,9 +1,10 @@
-转移笔记中，待办
-# 目录
-- [JVM]() (🌟🌟🌟)
-- [JUC]() (🌟🌟🌟)
 
 # TODO
+- [ ] 笔记转移
+  - [x] 基础
+  - [x] mybatis
+  - [x] spring
+  - [ ] SpringCloud
 - [JUC]()
   - [ ] voatile
   - [ ] ReentrantLock

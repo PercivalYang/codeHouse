@@ -10,3 +10,11 @@
 7. [Mybatis](./docs/java/mybatis.md)
 
 ## 待办
+
+- [ ] 笔记同步
+  - [x] 操作系统
+  - [ ] Java
+  - [ ] 数据库
+  - [ ] 设计模式
+  - [ ] 计算机网络
+  - [ ] SpringCloud
