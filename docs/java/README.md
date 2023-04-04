@@ -5,10 +5,10 @@
 
 # TODO
 - [JUC]()
-  - [] voatile
-  - [] ReentrantLock
-  - [] condition
-  - [] ReadWriteLock
-  - [] StampedLock
-  - [] 线程池
-  - [] 对象头
+  - [ ] voatile
+  - [ ] ReentrantLock
+  - [ ] condition
+  - [ ] ReadWriteLock
+  - [ ] StampedLock
+  - [ ] 线程池
+  - [ ] 对象头

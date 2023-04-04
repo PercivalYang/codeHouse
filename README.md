@@ -7,6 +7,6 @@
 4. [项目实战]()
 5. [微服务]()
 6. [Java八股]()
-7. [Mybatis]()
+7. [Mybatis](./docs/java/mybatis.md)
 
 ## 待办
