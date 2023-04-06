@@ -4,7 +4,10 @@
   - [x] 基础
   - [x] mybatis
   - [x] spring
-  - [ ] SpringCloud
+  - [x] SpringCloud
+  - [ ] 设计模式
+  - [ ] MySQL
+
 - [JUC]()
   - [ ] voatile
   - [ ] ReentrantLock
