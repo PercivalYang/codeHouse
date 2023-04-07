@@ -4,10 +4,10 @@
 
 InnoDB的数据是按照「**数据页**」为单位读写，默认大小为**16KB**，包含有7个部份，如右图所示，其中：
 
+![Untitled](./imgs/InnoDB%E6%95%B0%E6%8D%AE%E9%A1%B5.png)
+
 - File Header有两个指针，分别指向上个和下个数据页，形成**双向链表**
 - 数据页中的行记录按照「主键」顺序形成**单向链表**，为了提高检索效率，因此加入了「页目录」
-
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/14cb7f7b-d0f6-441b-8b24-08b7e46cd6a5/Untitled.png)
 
 ### 页目录
 
@@ -17,7 +17,7 @@ InnoDB的数据是按照「**数据页**」为单位读写，默认大小为**16
 2. 每个记录组的最后一条记录就是组内最大的那条记录，并且最后一条记录的头信息中会存储该组一共有多少条记录，作为 n_owned 字段（右图中粉红色字段）
 3. 页目录用来存储**每组最后一条记录的地址偏移量**，这些地址偏移量会按照先后顺序存储起来，每组的地址偏移量也被称之为槽（slot），**每个槽相当于指针指向了不同组的最后一个记录**。
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fb950aa2-a465-46b2-94c0-6f2ff28f6bba/Untitled.png)
+![Untitled](./imgs/数据页细节.png)
 
 # 并发事务的问题
 
@@ -58,7 +58,7 @@ A：幻读是指查询的**记录数量**前后不同，不可重复读是指**�
 - **可重复读（*repeatable read*）：**指一个事务执行过程中看到的数据，一直跟这个事务启动时看到的数据是一致的，**MySQL InnoDB 引擎的默认隔离级别**；
 - **串行化（*serializable* ）：**会对记录加上读写锁，在多个事务对这条记录进行读写操作时，如果发生了读写冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行；
 
-![不同隔离级别会出现的并发问题](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/395ae4c8-3988-4e29-9ea2-a022a72ecf14/Untitled.png)
+![不同隔离级别会出现的并发问题](./imgs/isolationDegree.png)
 
 不同隔离级别会出现的并发问题
 
