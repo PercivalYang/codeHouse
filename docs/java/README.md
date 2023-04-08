@@ -5,8 +5,8 @@
   - [x] mybatis
   - [x] spring
   - [x] SpringCloud
-  - [ ] 设计模式
-  - [ ] MySQL
+  - [x] 设计模式
+  - [x] MySQL
 
 - [JUC]()
   - [ ] voatile
