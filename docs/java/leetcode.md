@@ -1,10 +1,53 @@
 - [动态规划](#动态规划)
-    - [494.目标和](#494目标和)
-
+  - [题目类型划分](#题目类型划分)
+    - [组合数，排列数](#组合数排列数)
+  - [494.目标和](#494目标和)
+  - [279.完全平方数](#279完全平方数)
+  - [322.零钱兑换](#322零钱兑换)
 
 # 动态规划
 
-### 494.目标和
+## 题目类型划分
+
+### 组合数，排列数
+
+**区别**
+
+组合不强调元素之间的顺序，排列强调元素之间的顺序。例如：`[1, 2, 3]`和`[2, 1, 3]`是两种不同的组合，但是是同一种排列。
+
+若想得到组合数，通常先遍历背包，再遍历物品
+
+```java
+for (coin : coins){
+    for (int i = coin; i <= target; i ++){
+        dp[i] += dp[i - coin];
+    }
+}
+```
+
+若想得到排列数，通常先遍历物品，再遍历背包
+
+```java
+for (int i = 1; i <= target; i ++){
+    for (coin : coins){
+        if( i >= coin){
+            dp[i] += dp[i - coin];
+        }
+    }
+}
+```
+
+**组合数**
+
+- [377.组合求和IV](https://leetcode.cn/problems/combination-sum-iv/)
+
+**排列数**
+
+- [518.零钱兑换II](https://leetcode.cn/problems/coin-change-ii/)
+
+## 494.目标和
+
+[link](https://leetcode.cn/problems/target-sum/)
 
 这道题感觉看代码随想录上写的不是很清晰，结合了leetcode官网该题评论的第一条后豁然开朗，在这里记录下以便之后回顾。
 
@@ -70,4 +113,78 @@ class Solution {
         return dp[capacity];
     }
 }
+```
+
+## 279.完全平方数
+
+[link](https://leetcode-cn.com/problems/perfect-squares/)
+
+这道题不限制物品的数量，因此是一道完全背包问题。
+
+同时排列数和组合数的思路都可以用在这道题上，即先遍历物品或背包不影响最终结果，因为是求组合物品个数的最小值，不管组合数还是排列数的遍历方法都会包含这个最小物品个数。
+
+先遍历背包的程序如下：
+
+```java
+public int numSquares(int n) {
+    int[] dp = new int[n + 1];
+    int max = Integer.MAX_VALUE;
+    for (int i = 1; i < dp.length; i++) {
+        dp[i] = max;
+    }
+    dp[0] = 0;
+    // 先遍历背包
+    for (int i = 0; i <= n; i++) {
+        // j*j指平方数，即本题的“物品价值”
+        for (int j = 1; j*j <= i; j++) {
+            dp[i] = Math.min(dp[i - j * j] + 1, dp[i]);
+        }
+    }
+    return dp[n];
+}
+```
+
+先遍历物品的程序如下：
+
+```java
+public int numSquares(int n) {
+    int[] dp = new int[n + 1];
+    int max = Integer.MAX_VALUE;
+    for (int i = 1; i < dp.length; i++) {
+        dp[i] = max;
+    }
+    dp[0] = 0;
+    // 先遍历物品
+    for (int i = 1; i * i <= n; i++) {
+        // 再遍历背包，注意背包起点不是从0开始
+        // 因为要满足 j-i*i >= 0，不然就IndexOutOfBound了
+        for (int j = i * i; j <= n; j++) {
+            dp[j] = Math.min(dp[j - i * i] + 1, dp[j]);
+        }
+    }
+    return dp[n];
+}
+```
+
+与这道题类似的是[322.零钱兑换](https://leetcode-cn.com/problems/coin-change/)
+
+## 322.零钱兑换
+
+[link](https://leetcode-cn.com/problems/coin-change/)
+
+与[279.完全平方数](https://leetcode-cn.com/problems/perfect-squares/)类似，只是这道题可能不存在满足目标数的组合，需要返回`-1`。
+
+```java
+...
+// 前面的和完全平方数一致
+    // 如果等于max说明dp[i-coin]没有满足的组合
+    if (dp[i - coin] != max) {
+        dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+    }
+...
+// 根据背包内容判断是否返回-1
+if (dp[amount] != max) {
+    return dp[amount];
+}
+return -1;
 ```
