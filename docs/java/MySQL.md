@@ -12,7 +12,16 @@
     - [主键约束](#主键约束)
     - [外键约束](#外键约束)
   - [约束等级](#约束等级)
-  - [面试问题](#面试问题)
+  - [视图](#视图)
+    - [视图的创建](#视图的创建)
+  - [过程](#过程)
+    - [过程的创建](#过程的创建)
+    - [过程的调用](#过程的调用)
+    - [过程的优缺点](#过程的优缺点)
+  - [函数](#函数)
+    - [函数的创建](#函数的创建)
+    - [函数的调用](#函数的调用)
+    - [如何查看数据库的自定义过程和函数](#如何查看数据库的自定义过程和函数)
 - [InnoDB](#innodb)
   - [数据页](#数据页)
 - [事务](#事务)
@@ -24,6 +33,7 @@
   - [DDL 原子性](#ddl-原子性)
   - [计算列](#计算列)
   - [自增列持久化](#自增列持久化)
+- [面试问题](#面试问题)
 
 # SQL基本概念
 
@@ -243,7 +253,6 @@ ALTER TABLE emp1 ADD [CONSTRAINT emp_dept_id_fk] FOREIGN KEY(dept_id) REFERENCES
 
 因此外键约束应该建立在`应用层`面，来保证数据一致性同时减少外键带来的效率低下和其他风险。
 
-
 ## 约束等级
 
 - `Cascade` ：在父表上update/delete记录时，同步update/delete掉子表的匹配记录
@@ -262,14 +271,164 @@ foreign key (deptid) references dept(did) on update cascade on delete set null
 
 上述程式指定了指向`dept`表的`did`列的外键约束`deptid`的约束等级，在`UPDATE`操作上约束等级为`Cascade`，在`DELETE`操作上约束等级为`Set null`。
 
-## 面试问题
+## 视图
 
-**Q: 为什么一般不使用`null`值？**
+视图是一种虚拟表，它的数据并不真实存在，视图建立在基表(已有的被视图依赖的数据表)的基础上。可以把视图理解为**存储起来的`SELECT`语句**，目的是在大项目中将常用的查询结果放到视图中，提升效率
 
-建表的时候通常会用`not null default ''`或`default 0`来杜绝使用`null`值，原因是：
+### 视图的创建
 
-1. `null`值在索引中不起作用，会导致索引失效，这样检索只能通过比较其他键值，降低检索效率
-2. `null`值只能用专门的`is null`和`is not null`来比较，如果用运算符比较通常会返回`null`而不是布尔值。
+```sql
+CREATE [OR REPLACE] 
+[ALGORITHM = {UNDEFINED | MERGE | TEMPTABLE}] 
+VIEW 视图名称 [(字段列表)] 
+AS 查询语句 
+[WITH [CASCADED|LOCAL] CHECK OPTION]
+```
+
+其中`[OR REPLACE]`是可选项，加上的话会在视图已存在时替换掉原来的视图。
+
+`ALGORITHM`指定了创建视图的不同算法，解释如下：
+
+- `UNDEFINED`：使用默认算法，即`MERGE`算法
+- `MERGE`：无需创建临时表，而是将视图和基表合并形成一个新的虚拟表，可以对视图进行增删改的操作，但是多表联合时数据库管理系统会将所有表的数据逐一比较合并，影响查询效率
+- `TEMPTABLE`：MySQL创建一个临时表来存储视图数据，临时表是只读的，不允许增删改操作。但是数据库管理系统只需要将基表的数据复制粘贴，不需要逐一比较合并，从而提升了查询效率
+
+## 过程
+
+将预先编译好的SQL语句进行封装，这么做的好处是：
+
+- 提高SQL重用性，减少开发人员工作；
+- 减少网络传输量，客户端不需要将所有SQL语句发送给服务器，只需要发送调用过程的SQL语句；
+- 减少SQL语句暴露的风险，提高查询安全性
+
+**与视图和函数比较**
+
+- 视图是虚拟表，通常用来查询而不对基表进行增删改操作，而存储过程通常是对基表进行复杂的数据处理；
+- 函数是有返回值的，而过程没有返回值；并且函数的输入参数默认为`IN`类型，过程则有`IN`、`OUT`、`INOUT`三种可选项。
+
+### 过程的创建
+
+```sql
+CREATE PROCEDURE 存储过程名(IN|OUT|INOUT 参数名 参数类型,...)
+[characteristics ...] 
+BEGIN
+  存储过程体 
+END
+```
+
+- 其中`IN`, `OUT`, `INOUT`分别表示参数是入参，出参，入参和出参；(详情见后面过程的调用[例子](#过程的调用))
+- `characteristics`可以指定存储过程的特性，如下：
+
+```sql
+LANGUAGE SQL 
+| [NOT] DETERMINISTIC 
+| { CONTAINS SQL | NO SQL | READS SQL DATA | MODIFIES SQL DATA } 
+| SQL SECURITY { DEFINER | INVOKER } 
+| COMMENT 'string
+```
+
+- `LANGUAGE SQL`：指定存储过程的语言为SQL，如果不指定，默认为SQL
+- `[NOT] DETERMINISTIC`：指定存储过程是否是确定性的(即相同的输入会得到相同的输出)，如果不指定，默认为`DETERMINISTIC`
+- `{ CONTAINS SQL | NO SQL | READS SQL DATA | MODIFIES SQL DATA }`：指定子程序使用SQL语句的限制：
+  - `CONTAINS SQL`: 存储过程的子程序中包含SQL语句，但不包含读写数据的SQL语句
+  - `NO SQL`: 子程序中不包含SQL语句
+  - `READS SQL DATA`: 子程序中包含**读取**数据的SQL语句
+  - `MODIFIES SQL DATA`: 子程序中包含**写入**数据的SQL语句
+  - 默认为`CONTAINS SQL`
+- `SQL SECURITY`: 指明哪些用户能执行当前存储的过程，`DEFINER`表示创建者，`INVOKER`表示调用者。默认`DEFINER`
+- `COMMENT`: 存储过程的注释
+
+### 过程的调用
+
+- 先写一个存储过程(假设保存在服务器端)
+
+  ```sql
+  -- 为避免和SQL语句的结束符冲突，使用DELIMITER修改存储过程的结束符
+  DELIMITER // 
+  CREATE PROCEDURE CountProc(IN sid INT,OUT num INT) 
+  BEGIN
+    SELECT COUNT(*) INTO num FROM fruits 
+    WHERE s_id = sid; 
+  END // 
+  DELIMITER ;
+  ```
+
+- 在客户端调用该存储过程：
+
+  ```sql
+  -- 通过CALL调用存储过程
+  CALL CountProc(1,@num);
+  SELECT @num;
+  ```
+
+- 如果存储过程中有`INOUT`参数，例如`name`，则在客户端的调用应该类似如下形式：
+
+  ```sql
+  SET @name='apple';
+  CALL CountProc(1,@num,@name);
+  SELECT @num,@name;
+  ```
+
+### 过程的优缺点
+
+**优点**
+
+- 一次编译多次使用，提高SQL执行效率
+- 减少网络传输量
+- 良好的封装，保证过程安全性，减小开发人员工作量
+
+**缺点**
+
+- 可移植性差，不能跨数据库使用
+- 调试困难；
+- 没有版本控制，版本迭代困难；
+- 不适合高并发
+
+## 函数
+
+### 函数的创建
+
+```sql
+CREATE FUNCTION 函数名(参数名 参数类型,...) 
+RETURNS 返回值类型 
+[characteristics ...] 
+BEGIN
+  函数体 -- 函数体中肯定有RETURN 语句 
+END
+```
+
+上述格式中[`characteristics`](#过程的创建)见过程的创建部分。参数默认都是`IN`
+
+### 函数的调用
+
+```sql
+SELECT 函数名(参数名,...)
+-- 例如
+SELECT CountProc(1);
+```
+
+### 如何查看数据库的自定义过程和函数
+
+**查看创建信息**
+
+```sql
+SHOW CREATE PROCEDURE|FUNCTION 函数名|过程名
+-- 例如
+SHOW CREATE PROCEDURE CountProc \G;
+-- 最后\G是为了调整输出格式，使其更加美观
+```
+
+**查看状态信息**
+
+```sql
+SHOW {PROCEDURE | FUNCTION} STATUS [LIKE 'pattern']
+-- 例如
+SHOW PROCEDURE STATUS LIKE 'SELECT%' \G
+```
+
+状态信息回显示Definer、Comment、函数/过程的Name、Security_Type(`DEFINER` | `INVOKER`)等
+
+
 
 # InnoDB
 
@@ -403,3 +562,12 @@ MySQL8中支持将自增列的值持久化到磁盘中，这样在重启数据�
 当主键id是[1,2,3,4]时，删除id=4的行数据后，再次添加一行数据，id会从5开始，而不是4。
 
 由于MySQL5.7的计数器只在内存中进行维护，重启数据库中再次添加数据时，会从id=4开始。而MySQL8.0对自增列的计数器也进行了持久化，即使重启数据库，也会从id=5开始添加。
+
+# 面试问题
+
+**Q: 为什么一般不使用`null`值？**
+
+建表的时候通常会用`not null default ''`或`default 0`来杜绝使用`null`值，原因是：
+
+1. `null`值在索引中不起作用，会导致索引失效，这样检索只能通过比较其他键值，降低检索效率
+2. `null`值只能用专门的`is null`和`is not null`来比较，如果用运算符比较通常会返回`null`而不是布尔值。
