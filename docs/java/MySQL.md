@@ -11,6 +11,8 @@
     - [唯一约束](#唯一约束)
     - [主键约束](#主键约束)
     - [外键约束](#外键约束)
+  - [约束等级](#约束等级)
+  - [面试问题](#面试问题)
 - [InnoDB](#innodb)
   - [数据页](#数据页)
 - [事务](#事务)
@@ -195,7 +197,7 @@ CREATE TABLE USER(
 
 ### 外键约束
 
-使用外键约束的称为从表，被引用的表成为主表，如下所示：
+使用外键约束的称为从表(子表)，被引用的表成为主表(父表)，如下所示：
 
 ```sql
 create table dept( --主表 
@@ -234,6 +236,40 @@ ALTER TABLE 从表名 ADD [CONSTRAINT 约束名] FOREIGN KEY (从表的字段) R
 ```sql
 ALTER TABLE emp1 ADD [CONSTRAINT emp_dept_id_fk] FOREIGN KEY(dept_id) REFERENCES dept(dept_id);
 ```
+
+**外键约束的缺点**
+
+外键约束只适用于**单机低并发**场景，在**分布式**和**高并发**场景不适用；尤其是使用`Cascade`(级联)时，因为级联更新是强阻塞，存在数据库`更新风暴`的风险。同样外键还影响数据库的插入效率。
+
+因此外键约束应该建立在`应用层`面，来保证数据一致性同时减少外键带来的效率低下和其他风险。
+
+
+## 约束等级
+
+- `Cascade` ：在父表上update/delete记录时，同步update/delete掉子表的匹配记录
+- `Set null`：在父表上update/delete记录时，将子表上匹配记录的列设为null，但是要注意子
+表的外键列不能为not null
+- `No action` ：如果子表中有匹配的记录，则不允许对父表对应候选键进行update/delete操作
+- `Restrict`：同no action， 都是立即检查外键约束
+- `Set default`（在可视化工具SQLyog中可能显示空白）：父表有变更时，子表将外键列设置成一个默认的值，但Innodb不能识别
+
+如果不指定等级，默认为`Restrict`。指定等级的例子如下：
+
+```sql
+...
+foreign key (deptid) references dept(did) on update cascade on delete set null
+```
+
+上述程式指定了指向`dept`表的`did`列的外键约束`deptid`的约束等级，在`UPDATE`操作上约束等级为`Cascade`，在`DELETE`操作上约束等级为`Set null`。
+
+## 面试问题
+
+**Q: 为什么一般不使用`null`值？**
+
+建表的时候通常会用`not null default ''`或`default 0`来杜绝使用`null`值，原因是：
+
+1. `null`值在索引中不起作用，会导致索引失效，这样检索只能通过比较其他键值，降低检索效率
+2. `null`值只能用专门的`is null`和`is not null`来比较，如果用运算符比较通常会返回`null`而不是布尔值。
 
 # InnoDB
 
