@@ -1,6 +1,8 @@
 # 待办
 - [ ] 集合框架
   - [ ] ArrayList
+    - [x] 源码阅读
+    - [ ] 给`public`方法的简介用法加个目录
   - [ ] LinkedList
   - [ ] AbstractList
   - [ ] TreeSet
@@ -16,5 +18,5 @@
 ## 集合框架
 
 - [ArrayList](./CollectionsSource/ArrayList.md)
-- LinkedList
 - [AbstractList](./CollectionsSource/AbstractList.md)
+- [BitSet](./CollectionClass/BitSet.md)

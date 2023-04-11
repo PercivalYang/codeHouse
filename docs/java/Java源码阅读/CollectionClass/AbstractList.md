@@ -5,7 +5,7 @@
 
 > 为什么要有这个成员变量？
 
-因为`modCount`实现了Fast-Fail机制，这个机制是预防在多线程情况下遍历集合时，有其他线程对集合进行了修改，还产生不可预知的错误。
+因为`modCount`实现了fail-fast机制，这个机制是预防在多线程情况下遍历集合时，有其他线程对集合进行了修改，还产生不可预知的错误。
 
 Fast-Fail机制在读取集合前会记录一个`expectedModCount`，在遍历完后会和当前对象的成员属性`modCount`进行比较，若不同则抛出`ConcurrentModificationException`异常
 
