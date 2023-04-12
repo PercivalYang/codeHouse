@@ -22,6 +22,15 @@
     - [函数的创建](#函数的创建)
     - [函数的调用](#函数的调用)
     - [如何查看数据库的自定义过程和函数](#如何查看数据库的自定义过程和函数)
+  - [变量](#变量)
+    - [查看系统变量](#查看系统变量)
+    - [用户变量](#用户变量)
+    - [定义条件与处理程序](#定义条件与处理程序)
+  - [流程控制](#流程控制)
+    - [条件判断](#条件判断)
+    - [循环语句](#循环语句)
+    - [跳转语句](#跳转语句)
+  - [游标](#游标)
 - [InnoDB](#innodb)
   - [数据页](#数据页)
 - [事务](#事务)
@@ -33,6 +42,7 @@
   - [DDL 原子性](#ddl-原子性)
   - [计算列](#计算列)
   - [自增列持久化](#自增列持久化)
+  - [全局变量持久化](#全局变量持久化)
 - [面试问题](#面试问题)
 
 # SQL基本概念
@@ -428,6 +438,208 @@ SHOW PROCEDURE STATUS LIKE 'SELECT%' \G
 
 状态信息回显示Definer、Comment、函数/过程的Name、Security_Type(`DEFINER` | `INVOKER`)等
 
+## 变量
+
+分为**环境系统变量**(GLOBAL)和**会话系统变量**(SESSION)两种。默认是会话变量(也可称作局部变量)。在开启与服务器的MySQL会话时，对会话变量的初始化是对环境变量进行复制。
+
+- 全局系统变量仅对所有会话系统变量有效，不能**跨重启**
+- 对当前会话系统变量的修改，不会影响其他会话系统变量；
+- 当前会话对环境系统变量的修改，会影响其他会话系统变量。
+
+### 查看系统变量
+
+**查看全部系统变量**
+
+```sql
+--查看所有全局变量 
+SHOW GLOBAL VARIABLES; 
+--查看所有会话变量 
+SHOW SESSION VARIABLES; 
+--或
+SHOW VARIABLES;
+```
+
+**查看指定系统变量**
+
+```sql
+-- 查看指定的系统变量的值 
+SELECT @@global.变量名; 
+-- 查看指定的会话变量的值 
+SELECT @@session.变量名; 
+-- 或者 
+SELECT @@变量名;
+```
+
+> 不指定SESSION或者GLOBAL的话，`@@`先查看SESSION，SESSION不存在再去看GLOBAL
+
+### 用户变量
+
+分为**会话用户变量**和**局部变量**
+
+- 会话用户变量：只对当前连接会话有效，用`@`表示
+- 局部变量：只在BEGIN和END语句块中有效，用于存储过程和函数，用`DECLARE`定义
+
+```sql
+DELIMITER // 
+
+CREATE PROCEDURE set_value() 
+BEGIN
+  -- DECLARE 变量名 类型 [default 值]
+  -- 不声明默认值默认为Null
+  DECLARE emp_name VARCHAR(25); 
+  DECLARE sal DOUBLE(10,2); 
+  SELECT last_name,salary INTO emp_name,sal 
+  FROM employees 
+  WHERE employee_id = 102; 
+  SELECT emp_name,sal; 
+END // 
+
+DELIMITER ;
+```
+
+### 定义条件与处理程序
+
+定义条件和处理程序就类似Java里的try-catch-finally，用于处理异常。其中：
+
+- 定义条件：指程序运行中可能出现的问题
+- 处理程序：指出现问题时采取什么处理方式
+
+语法格式如下：
+
+```sql
+-- 定义错误条件
+DECLARE 错误名称 CONDITION FOR 错误码(或错误条件)
+-- 定义处理程序
+DECLARE 处理方式 HANDLER FOR 错误类型 处理语句
+```
+
+- 错误码
+  - 有**数值类型的错误码**`MySQL_error_code`和**字符串类型错误码**`sqlstate_value`
+  - 例如在`ERROR 1418 (HY000)`中1418是`MySQL_error_code`，HY000是`sqlstate_value`(长度5位)
+- 处理方式有3种：`CONTINUE`, `EXIT`, `UNDO`
+  - 其中`CONTINUE`和`EXIT`是继续执行不处理和马上退出；
+  - `UNDO`是撤回之前的操作，MySQL暂时不支持该操作
+- 错误类型：
+  - `SQLEXCEPTION`：所有的SQL错误
+  - `NOT FOUND`：没有找到记录，通常为02开头的`sqlstate_value`
+  - `SQLSTATE 'sqlstate_value'`：指定的SQL状态值
+  - `SQLWARNING`：所有的SQL警告，通常为01开头的`sqlstate_value`
+  - `MySQL_error_code`：匹配数值类型错误码
+  - `错误名称`：匹配错误名称
+
+## 流程控制
+
+- 条件判断语句 ：IF 语句和 CASE 语句
+- 循环语句 ：LOOP、WHILE 和 REPEAT 语句
+- 跳转语句 ：ITERATE 和 LEAVE 语句
+
+### 条件判断
+
+**IF**
+
+语句格式
+
+```sql
+IF 表达式1 THEN 操作1 
+[ELSEIF 表达式2 THEN 操作2]
+[ELSE 操作N] 
+END IF
+```
+
+**CASE**
+
+`CASE`有两种格式，一种类似swtich，另一种类似多重if。先来看类似switch的语句格式：
+
+```sql
+CASE 表达式
+WHEN 值1 THEN 操作1
+WHEN 值2 THEN 操作2
+...
+END [case] -- 放在BEGIN END语句块中时需要加上[case]
+```
+
+然后是多重if格式：
+
+```sql
+CASE
+WHEN 条件1 THEN 操作1
+...
+END [case]
+```
+
+### 循环语句
+
+`LOOP`语句格式：
+
+```sql
+-- loop_label 是语句块的标注，可以省略
+[loop_label:] LOOP 
+循环执行的语句 
+END LOOP [loop_label]
+```
+
+`WHILE`语句格式：
+
+```sql
+[while_label:] WHILE 循环条件 DO 
+循环体 
+END WHILE [while_label];
+```
+
+`REPEAT`语句格式：(等同`do..while`)
+
+```sql
+[repeat_label:] REPEAT 
+循环体的语句 
+UNTIL 结束循环的条件表达式 
+END REPEAT [repeat_label]
+```
+
+### 跳转语句
+
+`LEAVE`：跳出循环，语句格式
+
+```sql
+LEAVE [loop_label]
+```
+
+`ITERATE`：等同`continue`，语句格式同上
+
+## 游标
+
+SQL通常是面向集合的编程，而游标的出现让我们可以实现面向过程编程。游标可以随意定位到某一行记录，充当了指针的作用。使用游标的步骤如下：
+
+1. 声明游标
+
+    MySQL的游标声明方法如下：
+
+    ```sql
+    -- select_statement代指select语句块
+    -- 例如SELECT id, salary FROM employees
+    DECLARE cursor_name CURSOR FOR select_statement;
+    ```
+
+2. 打开游标
+
+因为游标需要占用系统资源，所以存在打开和关闭的步骤，如下：
+
+```sql
+OPEN cursor_name
+CLOSE cursor_name
+```
+
+3. 使用游标
+
+```sql
+FETCH cursor_name INTO var_name [, var_name] ...
+```
+将游标指向的当前行数据读取到`var_name`变量中，如果有多个字段，用逗号分隔（**游标查询的字段数要和变量数一致**）。例如：
+
+```sql
+FETCH cursor_emp INTO emp_id, emp_sal;
+```
+
+> 注意`emp_id`和`emp_sal`这些都是变量，要在声明游标前就定义好
 
 
 # InnoDB
@@ -562,6 +774,21 @@ MySQL8中支持将自增列的值持久化到磁盘中，这样在重启数据�
 当主键id是[1,2,3,4]时，删除id=4的行数据后，再次添加一行数据，id会从5开始，而不是4。
 
 由于MySQL5.7的计数器只在内存中进行维护，重启数据库中再次添加数据时，会从id=4开始。而MySQL8.0对自增列的计数器也进行了持久化，即使重启数据库，也会从id=5开始添加。
+
+## 全局变量持久化
+
+通常设置全局变量的方法如下：
+
+```sql
+-- 设置服务器语句执行的超时时间
+SET GLOBAL MAX_EXECUTION_TIME=2000;
+```
+
+虽然这样设置能够影响当前的所有会话系统变量，但是当数据库重启后，**又会从配置文件中读取默认值**。在MySQL8.0中新增`SET PERSIST`，会将配置的全局变量保存到**数据目录下的`mysql-auto.cnf`文件**，这样重启后会读取该文件来覆盖默认值
+
+```sql
+SET PERSIST GLOBAL MAX_EXECUTION_TIME=2000;
+```
 
 # 面试问题
 
