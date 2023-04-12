@@ -31,6 +31,8 @@
     - [循环语句](#循环语句)
     - [跳转语句](#跳转语句)
   - [游标](#游标)
+  - [触发器](#触发器)
+    - [优缺点](#优缺点)
 - [InnoDB](#innodb)
   - [数据页](#数据页)
 - [事务](#事务)
@@ -136,11 +138,11 @@ SELECT * FROM A WHERE id = (SELECT id FROM B WHERE name = 'Tom');
 
 例如：
 
-![](./imgs/zichaxun_Any.png)
+![zichaxun_Any](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/zichaxun_Any.png)
 
 - 只要满足`salary`小于[9000,6000,4800,4200]中任意一个值，`WHERE`条件成立
 
-![](./imgs/zichaxun_All.png)
+![zichaxun_All](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/zichaxun_All.png)
 
 - `salary`要小于[9000,6000,4800,4200]中所有的值，`WHERE`条件才成立
 
@@ -641,6 +643,49 @@ FETCH cursor_emp INTO emp_id, emp_sal;
 
 > 注意`emp_id`和`emp_sal`这些都是变量，要在声明游标前就定义好
 
+## 触发器
+
+触发器的思想类似监听器，会监听某个时间的发生，同时可以选择在事件发生前或后，创建一个触发器的语句格式如下：
+
+```sql
+CREATE TRIGGER 触发器名称 
+{BEFORE|AFTER} {INSERT|UPDATE|DELETE} ON 表名 
+FOR EACH ROW 
+触发器执行的语句块;
+```
+
+例如通过触发器来检查：新插入的员工工资是否高于他自己的领导工资，如果高于则抛出异常，语句如下：
+
+```sql
+DELIMITER // 
+
+CREATE TRIGGER salary_check_trigger 
+BEFORE INSERT ON employees FOR EACH ROW 
+BEGIN
+  -- mgrsalary代表领导工资
+  DECLARE mgrsalary DOUBLE; 
+  -- 找到员工领导的工资，赋值给mgrsalary
+  SELECT salary INTO mgrsalary FROM employees WHERE employee_id = NEW.manager_id; 
+  -- 如果员工工资高于领导工资，则抛出异常
+  IF NEW.salary > mgrsalary THEN SIGNAL SQLSTATE 'HY000' SET MESSAGE_TEXT = '薪资高于领导薪资错误'; 
+  END IF; 
+END // 
+
+DELIMITER ;
+```
+
+### 优缺点
+
+**优点**：
+
+- **能保证数据的完整性**。如果我们将数据分成多个表进行保存，通过外键约束进行关联。当我们只对一个表进行增删改操作时，就需要触发器来计算其他表的数据，或抛出数据缺失的异常；
+- **能帮助记录日志**；
+- **检查操作的合法性**。
+
+**缺点**：
+
+- **可读性差**。因为触发器存储在数据库中，不受应用层控制；
+- **相关数据的变更可能会导致触发器报错**
 
 # InnoDB
 
@@ -648,7 +693,7 @@ FETCH cursor_emp INTO emp_id, emp_sal;
 
 InnoDB的数据是按照「**数据页**」为单位读写，默认大小为**16KB**，包含有7个部份，如右图所示，其中：
 
-![Untitled](./imgs/InnoDB%E6%95%B0%E6%8D%AE%E9%A1%B5.png)
+![20230412144440](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230412144440.png)
 
 - File Header有两个指针，分别指向上个和下个数据页，形成**双向链表**
 - 数据页中的行记录按照「主键」顺序形成**单向链表**，为了提高检索效率，因此加入了「页目录」
@@ -661,7 +706,7 @@ InnoDB的数据是按照「**数据页**」为单位读写，默认大小为**16
 2. 每个记录组的最后一条记录就是组内最大的那条记录，并且最后一条记录的头信息中会存储该组一共有多少条记录，作为 n_owned 字段（右图中粉红色字段）
 3. 页目录用来存储**每组最后一条记录的地址偏移量**，这些地址偏移量会按照先后顺序存储起来，每组的地址偏移量也被称之为槽（slot），**每个槽相当于指针指向了不同组的最后一个记录**。
 
-![Untitled](./imgs/数据页细节.png)
+![数据页细节](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/%E6%95%B0%E6%8D%AE%E9%A1%B5%E7%BB%86%E8%8A%82.png)
 
 # 事务
 
@@ -701,9 +746,8 @@ A：幻读是指查询的**记录数量**前后不同，不可重复读是指**�
 - **可重复读（repeatable read）**：指一个事务执行过程中看到的数据，一直跟这个事务启动时看到的数据是一致的，**MySQL InnoDB 引擎的默认隔离级别**；
 - **串行化（serializable）**：会对记录加上读写锁，在多个事务对这条记录进行读写操作时，如果发生了读写冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行；
 
-![不同隔离级别会出现的并发问题](./imgs/isolationDegree.png)
+![isolationDegree](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/isolationDegree.png)
 
-不同隔离级别会出现的并发问题
 
 **实现**
 
@@ -721,7 +765,7 @@ A：幻读是指查询的**记录数量**前后不同，不可重复读是指**�
 
 **四个字段的作用**
 
-![](./imgs/ReadView.png)
+![ReadView](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/ReadView.png)
 
 - **creator_trx_id**：当前事务的ID
 - **m_ids**：当前事务启动时，系统中所有「活跃但未提交」事务的ID
@@ -734,7 +778,8 @@ A：幻读是指查询的**记录数量**前后不同，不可重复读是指**�
 
 根据当前事务的`min_trx_id`和`max_trx_id`，我们可以讲对于当前事务的其他事务划分为三类，如下图所示：
 
-![Untitled](./imgs/MVCC.png)
+![MVCC](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/MVCC.png)
+
 
 - 「已提交事务」，即小于`min_trx_id`，是对当前事务**可见**的;
 - 「还没开始事务」，即大于`max_trx_id`，是对当前事务**不可见**的

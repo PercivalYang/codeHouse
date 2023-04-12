@@ -6,6 +6,8 @@
   - [缓存击穿](#缓存击穿)
   - [缓存穿透](#缓存穿透)
     - [布隆过滤器](#布隆过滤器)
+  - [Spring Cache](#spring-cache)
+    - [注解使用](#注解使用)
 - [MQ](#mq)
   - [异步](#异步)
   - [RabbitMQ](#rabbitmq)
@@ -70,7 +72,7 @@
 
 由「初始值为0的位图数组」和「N个哈希函数」组成，例如「8位位图数组」和「3个哈希函数」
 
-![https://cdn.nlark.com/yuque/0/2023/png/22893446/1679295156004-1afa9bf4-6f00-4fee-92d6-bc2c70765e0a.png](https://cdn.nlark.com/yuque/0/2023/png/22893446/1679295156004-1afa9bf4-6f00-4fee-92d6-bc2c70765e0a.png)
+![](https://cdn.nlark.com/yuque/0/2023/png/22893446/1679295156004-1afa9bf4-6f00-4fee-92d6-bc2c70765e0a.png)
 
 - 数据库写入数据x后，会把其标记在布隆过滤器，即和「3个哈希函数」计算后取模得到位图数组的下标，然后将下标处的值设置为1；
 - 当查询数据是否存在数据库中，**必须要3个下标处的值都为1才表示数据存在，有一处为0都表示数据不存在**
@@ -81,7 +83,7 @@
 
 ### 注解使用
 
-![https://cdn.nlark.com/yuque/0/2023/png/22893446/1678438465113-9500839b-27bc-4a64-b7eb-872c953af0fa.png](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678438465113-9500839b-27bc-4a64-b7eb-872c953af0fa.png)
+![](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678438465113-9500839b-27bc-4a64-b7eb-872c953af0fa.png)
 
 - `@EnableCaching`：开启SpringCache缓存注解功能，在Application文件上添加
 - `@Cacheable`：通常放在表现层的查询方法上
@@ -115,7 +117,7 @@ RabbitMQ的结构和概念：
 - queue：缓存消息
 - virtual host：虚拟主机
 
-![Untitled](./imgs/RMQ.png)
+![RMQ](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/RMQ.png)
 
 ## SpringAMQP
 
@@ -161,7 +163,7 @@ spring:
         prefetch: 1 # 表示此时prefetch的数量为1
 ```
 
-![Untitled](./imgs/WorkQueue.png)
+![WorkQueue](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/WorkQueue.png)
 
 **FanoutExchange**
 
@@ -171,7 +173,7 @@ FanoutExchange中的交换机采用**广播机制**来转发消息
 
 即消息发给交换机后，交换机会将该消息发给所有和自己绑定的Queue
 
-![Untitled](./imgs/FanoutExchange.png)
+![FanoutExchange](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/FanoutExchange.png)
 
 **DirectExchange**
 
@@ -190,7 +192,7 @@ public void listenDirectQueue1(String msg){
 }
 ```
 
-![Untitled](./imgs/DirectExchange.png)
+![DirectExchange](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/DirectExchange.png)
 
 **TopicExchange**
 
@@ -212,4 +214,4 @@ rabbitTemplate.convertAndSend(exchangeName, "china.weather", message);
 	key = "china.#" 以及 type = ExchangeTypes.TOPIC
 ```
 
-![Untitled](./imgs/topicExchange.png)
+![topicExchange](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/topicExchange.png)

@@ -41,8 +41,8 @@
 - [Linxu 命令](#linxu-命令)
   - [awk](#awk)
 
-
 # CPU
+
 ## CPU Cache
 
 ### Cache Line
@@ -59,14 +59,9 @@
 - 将内存地址的组标记和Cache Line的进行对比，若不是则直接访问内存；
 - 根据内存的偏移量在Cache Line中读取对应的字
 
+![Cacheline](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/Cacheline.png)
 
-
-
-![Untitled](../imgs/Cacheline.png)
-
-
-
-![Untitled](../imgs/memeryToCache.png)
+![memeryToCache](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/memeryToCache.png)
 
 ---
 
@@ -81,7 +76,7 @@
 
 状态转移图如右图所示
 
-![Untitled](../imgs/MESI.png)
+![MESI](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/MESI.png)
 
 ### Cache Line导致的伪共享
 
@@ -91,8 +86,7 @@
 
 而如果线程B想要再读取变量B，此时是`Invalidated`状态，则需要核心1将Cache Line的值读取到内存(因为核心1该Cache Line的状态是`Modified`)，核心2再从内存中读取到Cache Line，这样就形成了伪共享。
 
-![](../imgs/CacheLine伪共享.png)
-
+![CacheLine伪共享](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/CacheLine%E4%BC%AA%E5%85%B1%E4%BA%AB.png)
 
 ## CPU运行队列
 
@@ -102,7 +96,7 @@
 - RealTime(**针对实时任务**)运行队列rt_rq
 - **CFS**(Completely Fair Scheduling，**针对普通任务**)运行队列cfs_rq
 
-![Untitled](../imgs/runQueue.png)
+![runQueue](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/runQueue.png)
 
 ## 普通任务的优先级
 
@@ -117,17 +111,18 @@ $$
 p_{new}=p_{old}+nice
 $$
 
-![https://cdn.nlark.com/yuque/0/2023/png/22893446/1679287916259-db49f7e2-b6eb-49f5-b825-0e8a77a69c9d.png](https://cdn.nlark.com/yuque/0/2023/png/22893446/1679287916259-db49f7e2-b6eb-49f5-b825-0e8a77a69c9d.png)
+![](https://cdn.nlark.com/yuque/0/2023/png/22893446/1679287916259-db49f7e2-b6eb-49f5-b825-0e8a77a69c9d.png)
 
 - 可以通过命令修改普通任务的nice值，以及更换调度策略
 
 ```bash
 nice -n 3 /usr/bin/mysqld # 启动任务时设置nice
-renice -10 -p <pid>	# 修改运行中普通任务的nice
-chrt -f 1 -p 1996	# 修改调度策略为SCHED_FIFO，优先级为1
+renice -10 -p <pid> # 修改运行中普通任务的nice
+chrt -f 1 -p 1996 # 修改调度策略为SCHED_FIFO，优先级为1
 ```
 
 # 文件系统
+
 ## 基本组成
 
 索引节点（*index node*）和目录项（*directory entry）*
@@ -167,19 +162,18 @@ File Allocation Table：文件分配表。属于「显示链接」，将用于�
 
 问题：是不适用于大磁盘，因为表也要占相当一部份内存
 
-
 **普通索引**
-    ![https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779770001-6f6595fe-edf4-4da9-86cf-6657521bb96e.png](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779770001-6f6595fe-edf4-4da9-86cf-6657521bb96e.png)
+    ![](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779770001-6f6595fe-edf4-4da9-86cf-6657521bb96e.png)
+
 - 存在的问题是即使文件很小也要单独开一块区域存储索引，以及大文件时一个数据块不够存放索引
 
 **链式索引**
-![https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779882453-9a5c5f90-aa68-4eee-a917-ca3ad135b786.png](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779882453-9a5c5f90-aa68-4eee-a917-ca3ad135b786.png)
+![](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779882453-9a5c5f90-aa68-4eee-a917-ca3ad135b786.png)
 
 - 文件头存放指针指向一块存放索引数据的数据块，在数据块中记录文件的数据块索引信息。每个索引块流出一块空间存放指向下个索引块的指针，存在问题也是指针丢失问题
 
-
 **多级索引块**
-![https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779917656-35e286b3-8e0a-4c17-aeb8-789233cc9fe0.png](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779917656-35e286b3-8e0a-4c17-aeb8-789233cc9fe0.png)
+![](https://cdn.nlark.com/yuque/0/2023/png/22893446/1678779917656-35e286b3-8e0a-4c17-aeb8-789233cc9fe0.png)
 
 - 通过一个索引块存放多个索引数据块的信息，简而言之：套娃
 
@@ -198,11 +192,12 @@ File Allocation Table：文件分配表。属于「显示链接」，将用于�
 用二进制表示盘块的使用情况，值为0时表示空闲，值为1时表示已分配
 
 # 内存
+
 ## 虚拟内存
 
 ### 分段
 
-![Untitled](../imgs/fenduan.png)
+![fenduan](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/fenduan.png)
 
 内存分段导致问题：**内存碎片**；
 
@@ -213,7 +208,6 @@ File Allocation Table：文件分配表。属于「显示链接」，将用于�
 导致新问题：内存交换效率低，因为硬盘读写速度慢
 
 新的解决方案：**内存分页**
-
 
 ### 分页
 
@@ -236,11 +230,11 @@ File Allocation Table：文件分配表。属于「显示链接」，将用于�
 
 **32位系统的多级页表**
 
-![Untitled](../imgs/duoye32.png)
+![duoye32](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/duoye32.png)
 
 **64位系统的多级页表**
 
-![Untitled](../imgs/duoye64.png)
+![duoye64](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/duoye64.png)
 
 - 全局页目录项 PGD（*Page Global Directory*）；
 - 上层页目录项 PUD（*Page Upper Directory*）；
@@ -249,7 +243,7 @@ File Allocation Table：文件分配表。属于「显示链接」，将用于�
 
 ### 段页式
 
-![Untitled](../imgs/duanye.png)
+![duanye](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/duanye.png)
 
 步骤：
 
@@ -258,8 +252,8 @@ File Allocation Table：文件分配表。属于「显示链接」，将用于�
 - 第三次将物理页号与页内位移组合，得到物理地址。
 
 优势：
-- 相比分页式，段页式在初始化时不需要再创建页表，只需要创建段表即可，节省内存空间
 
+- 相比分页式，段页式在初始化时不需要再创建页表，只需要创建段表即可，节省内存空间
 
 ## TLB
 
@@ -267,8 +261,7 @@ TLB（Translation Lookaside Buffer） ，通常称为页表缓存、转址旁路
 
 将最经常访问的页表项放入TLB中
 
-![Untitled](../imgs/tlb.png)
-
+![tlb](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/tlb.png)
 
 ## 内存回收
 
@@ -294,23 +287,22 @@ TLB（Translation Lookaside Buffer） ，通常称为页表缓存、转址旁路
 
 ### 回收阈值
 
-![Untitled](../imgs/huishouyuzhi.png)
+![20230412145347](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230412145347.png)
+
 
 - 超出`pages_low`触发后台内存回收(kswapd)，异步非阻塞
 - 超出`pages_min`触发直接回收，同步阻塞
 
-
-
 ## 内存空间分布
 
-![Untitled](../imgs/neihekongjianfenbu1.png)
+![neihekongjianfenbu1](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/neihekongjianfenbu1.png)
 
-![Untitled](../imgs/neihekongjianfenbu2.png)
-
+![neihekongjianfenbu2](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/neihekongjianfenbu2.png)
 
 ### 用户空间
 
-![Untitled](../imgs/yonghukongjian.png)
+![yonghukongjian](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/yonghukongjian.png)
+
 
 - 代码段，包括二进制可执行代码；
 - 数据段，包括已初始化的静态常量和全局变量；
@@ -325,14 +317,13 @@ TLB（Translation Lookaside Buffer） ，通常称为页表缓存、转址旁路
 
 ## 进程状态
 
-![Untitled](../imgs/jinchengzhuangtai.png)
+![jinchengzhuangtai](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/jinchengzhuangtai.png)
 
 - 挂起是避免阻塞状态的程序占用内存，而将其物理内存空间换出到硬盘，等阻塞结束后再读取到内存中
 
 区分**阻塞挂起**和**就绪挂起**两种状态：
 
 - 两者都在外存，阻塞挂起需等待某个事件(例如IO完成)，而就绪挂起只要进入内存后就立即运行
-
 
 ## 上下文切换
 
@@ -347,13 +338,13 @@ Process/Thread Control Block，用来对进程/线程进行唯一标识
 **TCB：**
 
 - 用户线程：
-    - 不由操作系统维护，线程之间的中断必须通过进程进行（这样其他进程都会被停止）
+  - 不由操作系统维护，线程之间的中断必须通过进程进行（这样其他进程都会被停止）
 - 内核线程：
-    - 由操作系统维护，线程之间的中断互不影响，缺点是对系统开销大
+  - 由操作系统维护，线程之间的中断互不影响，缺点是对系统开销大
 
 ### 轻量级进程
 
-![Untitled](../imgs/lwp.png)
+![lwp](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/lwp.png)
 
 轻量级进程（**Light-weight process，LWP**）与内核进程**一对一**，与普通进程的区别是只有一个最小的执行上下文和调度程序所需的统计信息
 
@@ -374,7 +365,6 @@ Process/Thread Control Block，用来对进程/线程进行唯一标识
 
 - 综合了前两者的优点
 
-
 ## 进程调度
 
 - 非抢占式调度：挑选一个进程，直到该进程阻塞或退出，才会调度另一个进程
@@ -389,11 +379,12 @@ Process/Thread Control Block，用来对进程/线程进行唯一标识
 - 响应时间，响应时间短的任务优先调用
 
 ### 调度算法
+
 - FCFS(First Come First Serve)
 - SJF(Shortest Job First)
 - HRRN(Highest Response Ratio Next)
   - 选择响应比对的任务调度
-  - 响应比 = （等待时间 + 估计运行时间）/ 估计运行时间 
+  - 响应比 = （等待时间 + 估计运行时间）/ 估计运行时间
 - RR(Round Robin)
   - 轮询，每个进程分配同样的时间片
 - HPF(Highest Priority First)
@@ -401,11 +392,13 @@ Process/Thread Control Block，用来对进程/线程进行唯一标识
   - 静态优先级在创建时确定，运行期间不变；动态优先级与进程的运行时间成反比，等待时间成正比
 - Multilevel Feedback Queue
 
-![Untitled](../imgs/MFQ.png)
+![MFQ](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/MFQ.png)
   > 高优先级的进程时间片会很短，新的进程会先进入第一梯队，如果在S1处没完成，则会进入第二梯队，而第二梯队虽然优先级低但是有更高的时间片段时间，这样有效的在高优先级完成了短任务，而长任务就可以往下依次挪到低优先级但时间片段更大的队列
 
 # Linxu 命令
+
 ## awk
+
 **内置变量:**
 
 - NF 字段个数，（读取的列数）
