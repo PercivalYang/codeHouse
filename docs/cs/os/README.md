@@ -3,6 +3,7 @@
     - [Cache Line](#cache-line)
     - [直接映射](#直接映射)
     - [MESI协议](#mesi协议)
+    - [Cache Line导致的伪共享](#cache-line导致的伪共享)
   - [CPU运行队列](#cpu运行队列)
   - [普通任务的优先级](#普通任务的优先级)
 - [文件系统](#文件系统)
@@ -81,6 +82,16 @@
 状态转移图如右图所示
 
 ![Untitled](../imgs/MESI.png)
+
+### Cache Line导致的伪共享
+
+假设线程A由核心1负责，他们只对变量A的值做读取和修改；同理，线程B由核心2负责，他们只对变量B的值做读取和修改。
+
+由于从内存读取到CPU Cache的单位不是`bit`，而是`Cache Line`。如果A和B都处在同一个Cache Line中，结合[MESI协议](#mesi协议)，假设线程A修改了变量`A`(核心1该Cache Line会变成`Modified`)，会通过总线方式告诉核心2将对应Cache Line修改为`Invalidated`状态。
+
+而如果线程B想要再读取变量B，此时是`Invalidated`状态，则需要核心1将Cache Line的值读取到内存(因为核心1该Cache Line的状态是`Modified`)，核心2再从内存中读取到Cache Line，这样就形成了伪共享。
+
+![](../imgs/CacheLine伪共享.png)
 
 
 ## CPU运行队列
