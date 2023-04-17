@@ -9,11 +9,23 @@
     - [新生代和老年代](#新生代和老年代)
     - [Full GC和Major GC](#full-gc和major-gc)
     - [逃逸分析](#逃逸分析)
+    - [TLAB](#tlab)
+    - [四种引用方式](#四种引用方式)
+  - [方法区](#方法区)
+    - [特点](#特点-1)
+    - [运行时常量池](#运行时常量池)
+  - [直接内存(堆外内存)](#直接内存堆外内存)
 - [对象](#对象)
   - [对象的内存布局](#对象的内存布局)
     - [对象头](#对象头)
     - [实例数据](#实例数据)
     - [对齐填充](#对齐填充)
+  - [对象的访问方式](#对象的访问方式)
+    - [句柄访问](#句柄访问)
+    - [直接访问](#直接访问)
+- [IDEA的操作](#idea的操作)
+  - [设置JVM参数](#设置jvm参数)
+  - [分析堆内存](#分析堆内存)
 
 # 内存结构
 
@@ -176,6 +188,56 @@ public static StringBuffer createStringBuffer(String s1, String s2) {
 
 - `-XX:+DoEscapeAnalysis`：开启逃逸分析，jdk1.7之后默认开启；（`+`换成`-`就是关闭）
 
+### TLAB
+
+全称：Thread Local Allocation Buffer，即线程本地分配缓冲区。
+
+因为堆是所有线程共享的，每次线程在堆上分配内存时都需要进行同步（JVM通过CAS实现同步）。
+
+为了减少同步的开销，每个线程**预先**在堆中分配一块小内存，等到TLAB用完时分配新的TLAB时，才需要进行同步。
+
+如果线程在TLAB中分配内存失败了，会使用加锁的机制来保证原子性。
+
+- `-XX:+UseTLAB`: 开启TLAB，默认开启
+- `-XX:+TLABSize`: 设置TLAB的大小，默认为1MB
+
+### 四种引用方式
+
+- 强引用：`Object obj = new Object()`，`obj`就是强引用变量，除非将`obj`赋值为`null`，否则即使JVM发生OOM，GC也不会回收强引用变量指向的堆上的变量；
+- 弱引用：只要发生GC，都会进行回收
+- 软引用：只有在内存不足时才会进行回收
+- 虚引用：不会决定对象生命周期，该对象随时可能被GC回收
+
+## 方法区
+
+方法区是堆的一个**逻辑部份**。存放以下信息：
+
+- 已经被虚拟机加载的类信息
+- 常量
+- 静态变量
+- 即时编译器编译后的代码
+
+### 特点
+
+- 线程共享
+- 永久代：方法区中的信息需要长期存在，称为永久代
+- 回收效率低：变量都是永生代需要长期存在，因此一次GC只会有少数变量会被回收；
+- 可以固定大小/动态扩展/不实现GC等。
+
+### 运行时常量池
+
+常量就存在其中。`.class`文件除了有类的版本、字段、方法、接口等描述信息，还有**常量池表**(Constant Pool Table)，用于存放编译期生成的字面量与符号引用，将在类加载后存入方法区中的运行时常量池。
+
+同时运行时常量池具备**动态性**，可以在运行期间将新的常量加入池中，例如通过`String`的`intern()`方法。
+
+> 用`new`显示创建字符串时，Java会创建新的实例对象(不论字符串常量池中是否存在该字符)，`intern`方法是将该String对象添加到字符串池中，如果池中已经存在该对象，则返回池中的对象。
+
+## 直接内存(堆外内存)
+
+JDK1.4种新加入**NIO**(New Input/Output)，引入一种基于管道和缓冲区的I/O方式。可以使用Native函数库直接申请堆外内存，然后用存储在Java堆中的`DirectByteBuffer`来引用这块堆外内存进行操作。
+
+NIO的操作是非阻塞的，因此可以通过一个线程来管理多个通道，从而提高系统的并发性能。
+
 # 对象
 
 ## 对象的内存布局
@@ -210,3 +272,49 @@ HotSpot的对象内存布局如下：
 为了保证对象的大小是8字节的整数倍，可能会在对象头和实例数据之间添加一些填充字节。
 
 > HotSpot VM 的自动内存管理系统要求对象的大小必须是 8 字节的整数倍，提高对象的访问效率
+>
+> 因为对齐填充帮助Java堆的内存是规整的，所有空闲区在一边，被使用区在另一边，中间有一个指针作为分界点。下次分配内存只用将指针移动和对象大小相同的距离，这个操作称为**指针碰撞**。
+
+## 对象的访问方式
+
+### 句柄访问
+
+句柄的访问可以理解为间接访问，即在堆中申请一个"访问代理"，代理中包含了对象的实例数据和类型数据各自的具体地址信息，然后通过访问代理来访问对象。如下图所示
+
+![20230417173021](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230417173021.png)
+
+### 直接访问
+
+直接访问是省去了代理，直接访问对象的实例数据和类型数据。如下图所示
+
+![20230417173136](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230417173136.png)
+
+
+# IDEA的操作
+
+ IDEA版本：2022.3.1(Ultimate Edition)
+
+## 设置JVM参数
+
+![20230417180104](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230417180104.png)
+
+在`Edit Configuration`中，如果没有VM options的话，如上图操作添加上即可；
+
+
+## 分析堆内存
+
+**Debug过程中**：
+
+![20230417180353](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230417180353.png)
+
+要把Debug中的`Memory`视图打开
+
+**使用memory快照**：
+
+[官方教程](https://www.jetbrains.com/help/idea/create-a-memory-snapshot.html)
+
+![20230417180617](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230417180617.png)
+
+捕获的快照`.hprof`文件中可以查看对象的创建个数等，如下图：
+
+![20230417180722](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230417180722.png)
