@@ -33,10 +33,14 @@
   - [游标](#游标)
   - [触发器](#触发器)
     - [优缺点](#优缺点)
-- [MySQL的数据目录](#mysql的数据目录)
   - [默认数据库](#默认数据库)
+  - [用户权限和管理(待完善)](#用户权限和管理待完善)
+- [数据库的逻辑架构](#数据库的逻辑架构)
+  - [服务器处理客户端请求](#服务器处理客户端请求)
 - [InnoDB](#innodb)
+  - [不同数据引擎对比](#不同数据引擎对比)
   - [数据页](#数据页)
+  - [缓冲池(Buffer Pool)](#缓冲池buffer-pool)
 - [事务](#事务)
   - [并发事务的问题](#并发事务的问题)
   - [特性](#特性)
@@ -637,6 +641,7 @@ CLOSE cursor_name
 ```sql
 FETCH cursor_name INTO var_name [, var_name] ...
 ```
+
 将游标指向的当前行数据读取到`var_name`变量中，如果有多个字段，用逗号分隔（**游标查询的字段数要和变量数一致**）。例如：
 
 ```sql
@@ -689,8 +694,6 @@ DELIMITER ;
 - **可读性差**。因为触发器存储在数据库中，不受应用层控制；
 - **相关数据的变更可能会导致触发器报错**
 
-# MySQL的数据目录
-
 ## 默认数据库
 
 1. `mysql`
@@ -709,7 +712,40 @@ DELIMITER ;
 
 通过视图结合`information_schema`和`performance_schema`的信息。
 
+## 用户权限和管理(待完善)
+
+# 数据库的逻辑架构
+
+## 服务器处理客户端请求
+
+![20230419152053](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230419152053.png)
+
+1. 连接管理
+   - 首先要建立`TCP`连接；
+   - 验证完用户名和密码后，将权限表中账号权限与该连接进行关联；
+   - 服务器和客户端的交互需要从线程池中专门分配一个线程
+
+2. 解析优化
+   - `解析器`会对SQL语句先进行词法分析，识别SQL语句中每段字符串代表什么；然后进行语法分析，如果语法正确，会生成一棵`语法树`(如下所示）
+
+    ![20230419152520](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230419152520.png)
+
+   - `优化器`会对语法树进行优化，比如选择最优的索引，或者将多表查询转换为单表查询。查询策略有`选取-投影-连接`，例如：
+
+    ```sql
+    SELECT id,name FROM student WHERE gender = '女';
+    ```
+
+    先对`WHERE`进行选取，再只投影`id`和`name`，最后再进行连接，得到最终结果
+
+3. 存储引擎
+
 # InnoDB
+
+## 不同数据引擎对比
+
+- InnoDB支持事务，优势是`可以安全恢复`；
+- MyISAM支持全文索引、压缩、空间函数(GIS)等，优势是`速度快`；但不支持事务、外键等，崩溃后无法安全恢复数据。
 
 ## 数据页
 
@@ -729,6 +765,18 @@ InnoDB的数据是按照「**数据页**」为单位读写，默认大小为**16
 3. 页目录用来存储**每组最后一条记录的地址偏移量**，这些地址偏移量会按照先后顺序存储起来，每组的地址偏移量也被称之为槽（slot），**每个槽相当于指针指向了不同组的最后一个记录**。
 
 ![数据页细节](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/%E6%95%B0%E6%8D%AE%E9%A1%B5%E7%BB%86%E8%8A%82.png)
+
+## 缓冲池(Buffer Pool)
+
+为提高读写效率，DBMS会申请占用内存作为数据缓冲池。
+
+缓冲池中包括：数据页，索引页，插入缓存，自适应哈希索引，数据字典信息，锁信息等。
+
+缓冲池中查询和更新数据的流程如下：
+
+![20230419155311](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230419155311.png)
+
+可以看到更新数据不会立即进行持久化，而是定期进行。
 
 # 事务
 
@@ -770,7 +818,6 @@ A：幻读是指查询的**记录数量**前后不同，不可重复读是指**�
 
 ![isolationDegree](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/isolationDegree.png)
 
-
 **实现**
 
 - 读未提交：不加锁直接读
@@ -801,7 +848,6 @@ A：幻读是指查询的**记录数量**前后不同，不可重复读是指**�
 根据当前事务的`min_trx_id`和`max_trx_id`，我们可以讲对于当前事务的其他事务划分为三类，如下图所示：
 
 ![MVCC](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/MVCC.png)
-
 
 - 「已提交事务」，即小于`min_trx_id`，是对当前事务**可见**的;
 - 「还没开始事务」，即大于`max_trx_id`，是对当前事务**不可见**的
