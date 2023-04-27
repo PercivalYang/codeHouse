@@ -2,10 +2,20 @@
   - [注解](#注解)
     - [常用注解](#常用注解)
   - [枚举](#枚举)
+- [泛型](#泛型)
 - [io](#io)
+  - [序列化](#序列化)
   - [字节流](#字节流)
   - [字符流](#字符流)
   - [缓冲流](#缓冲流)
+  - [Kryo](#kryo)
+- [NIO](#nio)
+  - [三大组件](#三大组件)
+    - [Channel](#channel)
+    - [Buffer](#buffer)
+    - [Selector](#selector)
+- [网络编程](#网络编程)
+  - [Netty](#netty)
 - [jvm](#jvm)
   - [垃圾回收](#垃圾回收)
     - [gc要点](#gc要点)
@@ -20,6 +30,7 @@
     - [偏向锁](#偏向锁)
     - [无锁](#无锁)
   - [线程池（待完善）](#线程池待完善)
+    - [Executors](#executors)
     - [ExecutorService](#executorservice)
   - [线程组](#线程组)
   - [线程通信模式](#线程通信模式)
@@ -41,21 +52,85 @@
     - [cglib代理](#cglib代理)
 - [注解](#注解-1)
   - [常用注解](#常用注解-1)
+  - [lombok](#lombok)
+    - [@Builder](#builder)
 
 # 注解和枚举
 
 ## 注解
 
 ### 常用注解
-`@SuppressWarnings`:可用于抑制编译器警告，常见可抑制的警告类型有：
-- "unchecked"：取消未检查的转换警告
-- "deprecation"：取消已过期 API 的警告
-- "rawtypes"：取消使用原始类型的警告
-- "unused"：取消未使用变量或方法的警告
+
+- `@SuppressWarnings`:可用于抑制编译器警告，常见可抑制的警告类型有：
+
+  - "unchecked"：取消未检查的转换警告
+  - "deprecation"：取消已过期 API 的警告
+  - "rawtypes"：取消使用原始类型的警告
+  - "unused"：取消未使用变量或方法的警告
+
+- `@Documented`: 是一种元注解，被该注解标注的类，在利用`javadoc`生成文档时会包含注解信息，例如：
+
+  ![20230426214106](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426214106.png)
+
+- `@Retention`: 用于指定注解的生命周期，有三个值：
+
+  ![20230426214543](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426214543.png)
+
+- `@Target`: 用于指明注解可以修饰的目标，例如：
+
+  - `@Target(ElementType.TYPE)`: 用于修饰类、接口、枚举
+  - `@Target(ElementType.FIELD)`: 用于修饰成员变量
+  - ...
+
+- `@Inherited`: 被该注解标注的注解，在标记父类的时候，其子类也会继承该注解，例如：
+
+  ```java
+  @Inherited
+  public @interface hasInherited {
+  }
+  ```
+
+  ```java
+  @hasInherited
+  public class Father {...}
+  ```
+
+  ```java
+  public class Child {...}
+  ```
+
+  此时虽然`Child`类没有被`@hasInherited`注解修饰，但如果通过反射`Child.class.getAnnotations()`方法获取到的注解数组中，会包含`@hasInherited`注解。
 
 ## 枚举
 
+# 泛型
+
 # io
+
+## 序列化
+
+**为什么要序列化？**
+
+  1. 为了保存对象的状态，以便将来恢复到当前状态
+  2. 为了传输对象，通过序列化将对象转换为字节流，传输到其他地方，例如进行网络传输，或者保存到本地文件中；再通过反序列化将字节流转换为对象
+
+**Java自带的序列化**
+
+`java.io.Serializable`接口是Java自带的序列化，只要实现该接口即可（是个标识接口）。
+
+通常会在实现了该接口的类中看到一个`serialVersionUID`的成员变量，这个变量的作用是版本控制，会在反序列化时检查和当前类的`serialVersionUID`是否一致，如果不一致则会抛出`InvalidClassException`异常。
+
+**自带序列化的缺点**
+
+在实际开发中很少用Java自带的序列化，因为存在以下问题：
+
+- 不支持跨语言调用；
+- 相比流行的序列化框架性能差，序列化后的字节数组体积大；
+- 存在安全问题，
+
+**目前常用的序列化框架**(待完善)
+
+目前常用的框架有：Kryo、Protobuf、ProtoStuff、Hessian等，这里主要介绍Kryo
 
 ## 字节流
 
@@ -81,6 +156,171 @@
 > **为什么要有缓冲流？**
 
     减少i/o次数，先将读取的字节或者字符存储在缓冲区(缓冲区是运行期间在内存中开辟，字节流通常是一个`8kb`的数组)，待缓冲区满或者调用`.flush`方法后将缓冲区数据发送，触发io中断
+
+## Kryo
+
+所有使用Kryo进行序列化的类，必须具有**无参构造方法**
+
+# NIO
+
+NIO: Non-blocking IO
+
+## 三大组件
+
+### Channel
+
+双向数据通道，通过`Channel`可以从`Buffer`读和写数据。
+
+### Buffer
+
+常用的Buffer：
+
+- ByteBuffer
+  - MappedByteBuffer
+  - DirectByteBuffer
+  - HeapByteBuffer
+
+- 常用的方法：
+  - `filp()`: 进入读模式
+  - `clear()`: 进入写模式
+  - `compact()`: 进入写模式，保留未读数据
+  - `rewind()`: 将`position`置0
+
+**Buffer的结构**：
+
+![20230427200355](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230427200355.png)
+
+在Buffer里有三个要注意的成员变量：`position`，`limit`，`capacity`, `mark`。他们分别是：
+
+- `position`：当前读写的位置，可以理解为一个指针；
+- `limit`：表示当前缓冲区对指针移动范围的限制；
+- `capacity`：表示缓冲区的大小。
+- `mark`：当调用`mark()`方法时，用`mark`标记当前`position`的位置，即`mark=position`；当调用`reset`方法时，`position`会回到`mark`的位置
+
+在写模式下，向`ByteBuffer`中写入数据后，其结构如下：
+
+![0018](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/0018.png)
+
+当我们通过`flip`函数将`Buffer`转换为读模式时，其结构如下：
+
+![0019](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/0019.png)
+
+再来看下`flip`的源码：
+
+```java
+public final Buffer flip() {
+    limit = position;
+    position = 0;
+    mark = -1;
+    return this;
+}
+```
+
+当我们要转回读模式时，有两个方法`clear()`和`compact()`，他们的区别在于：
+
+- `clear()`: 将`position`设置为0，`limit`设置为`capacity`。不用清空`Buffer`内的数据，因为会被之后写入的数据覆盖。其源码如下：
+
+  ```java
+  public final Buffer clear() {
+      position = 0;
+      limit = capacity;
+      mark = -1;
+      return this;
+  }
+  ```
+
+- `compact()`: 目前只知道`Buffer`没有`compact()`方法，而是在`ByteBuffer`中的一个抽象方法。调用`compact()`会将未读完的数据移动到`Buffer`的开头，然后将`position`设置为未读完的数据的长度，`limit`设置为`capacity`。
+
+> `clear()`和`compact()`不同在于，如果`Buffer`中有没有读完的数据，即`position`指针没有移动到`limit`处，调用`clear()`会忽略未读完的数据，而调用`compact()`则会保留未读完的数据
+
+
+### Selector
+
+# 网络编程
+
+![20230426155332](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426155332.png)
+
+上图是通过Socket建立网络通信的流程图，可以理解为：
+
+- 服务器端通过`ServerSocket`监听端口，等待客户端连接
+- 客户端通过`Socket`连接服务器端，建立连接后，客户端和服务器端都会有一个`Socket`对象，通过该对象进行通信
+- 客户端结束通信后，调用`Socket`的`close()`方法关闭连接，服务器端通过`accept()`方法接收到客户端关闭连接的消息，关闭服务器端的`Socket`对象
+
+举个简单的例子：
+
+1. 服务器建立Socket，绑定并监听指定端口：
+
+```java
+public class HelloServer {
+    Logger logger = Logger.getLogger(HelloServer.class.getName());
+
+    public void listenAndRecive(int port) {
+        // 1. 建立服务器的socket，绑定并监听指定端口好
+        try (ServerSocket serverSocket = new ServerSocket(port);) {
+            Socket socket;
+            while ((socket = serverSocket.accept()) != null) {
+                // 2. 获取服务器socket的对象输入输出流，以便读取客户端发来的数据和发送数据到客户端
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+                ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
+                // 3. 读取客户端发来的数据
+                Message message = (Message) objectInputStream.readObject();
+                logger.info("receive message from client: " + message.getContent());
+                // 4. 发送数据到客户端
+                message.setContent("Hello client!");
+                objectOutputStream.writeObject(message);
+                // 刷新缓存让数据立即发送
+                objectOutputStream.flush();
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void main(String[] args) {
+        HelloServer helloServer = new HelloServer();
+        helloServer.listenAndRecive(6666);
+    }
+
+}
+```
+
+2. 客户端通过指定ip地址和端口号建立Socket，通过Socket的输入输出流实现与服务端的通信
+
+```java
+public class HelloClient {
+    Logger logger = Logger.getLogger(HelloClient.class.getName());
+
+    public Message send(Message message, String host, int port) {
+        // 1. 建立客户端的Socket，绑定ip地址和端口号
+        try (Socket socket = new Socket(host, port)) {
+            // 2. 获取socket的输出流，以便向服务器写数据
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+            // 向服务器写数据，通过writeObject()方法传输Message对象的实例数据
+            objectOutputStream.writeObject(message);
+            logger.info("send message to server: " + message.getContent());
+            // 3. 获取socket的输入流，以便从服务器读数据
+            ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
+            logger.info("receive message from server: " + ((Message) objectInputStream.readObject()).getContent());
+            return (Message) objectInputStream.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void main(String[] args) {
+        HelloClient helloClient = new HelloClient();
+        Message ms = new Message();
+        ms.setContent("Hello server!");
+        Message message = helloClient.send(ms, "127.0.0.1", 6666);
+    }
+}
+```
+
+> 这里的`Message`是自定义的POJO类，里面只有`String content`成员变量、构造方法和set/get方法
+
+然而这样的网络编程是**阻塞形式**的，服务端在调用`serverSocket.accpet()`时会触发阻塞，直到接收到客户端的请求时才会继续执行后面的程序
+
+## Netty
 
 # jvm
 
@@ -144,6 +384,10 @@
 ### 无锁
 
 ## 线程池（待完善）
+
+### Executors
+
+是一个工具类，通常用于创建线程池，例如
 
 ### ExecutorService
 
@@ -278,7 +522,9 @@ if (lock.tryLock(1, TimeUnit.SECONDS)) {
 - 代理对象继承自目标对象
 
 # 注解
+
 ## 常用注解
+
 - `@Target`: 指定该注解可用于哪些元素上，如方法、字段、类等
   - ElementType.TYPE：可以应用于类、接口和枚举上。
   - ElementType.FIELD：可以应用于字段上。
@@ -293,3 +539,19 @@ if (lock.tryLock(1, TimeUnit.SECONDS)) {
   - RetentionPolicy.SOURCE：注解仅在源代码中保留，编译时会被丢弃。
   - RetentionPolicy.CLASS：注解在编译时保留，在类加载时被丢弃。
   - RetentionPolicy.RUNTIME：注解在运行时保留，可以通过反射机制读取。
+
+## lombok
+
+### @Builder
+
+`@Builder`注解主要是帮助省去了`set`方法，通过流式编程的方式为对象的每个成员变量赋值，例如
+
+```java
+// Studeten包含sno, sname, sage, sphone等成员变量
+Student.builder()
+       .sno( "001" )
+       .sname( "admin" )
+       .sage( 18 )
+       .sphone( "110" )
+       .build();
+```
