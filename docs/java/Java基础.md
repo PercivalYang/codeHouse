@@ -13,7 +13,10 @@
   - [三大组件](#三大组件)
     - [Channel](#channel)
     - [Buffer](#buffer)
-    - [Selector](#selector)
+    - [Selector(待完善)](#selector待完善)
+  - [文件编程](#文件编程)
+    - [FileChannel](#filechannel)
+    - [File Path](#file-path)
 - [网络编程](#网络编程)
   - [Netty](#netty)
 - [jvm](#jvm)
@@ -184,7 +187,9 @@ NIO: Non-blocking IO
   - `filp()`: 进入读模式
   - `clear()`: 进入写模式
   - `compact()`: 进入写模式，保留未读数据
-  - `rewind()`: 将`position`置0
+  - `rewind()`: 将`position`置0，即重新读取数据
+  - `mark()`: 标记当前`position`的位置
+  - `reset()`: 将`position`回到`mark`的位置，配合`mark()`使用
 
 **Buffer的结构**：
 
@@ -233,8 +238,57 @@ public final Buffer flip() {
 
 > `clear()`和`compact()`不同在于，如果`Buffer`中有没有读完的数据，即`position`指针没有移动到`limit`处，调用`clear()`会忽略未读完的数据，而调用`compact()`则会保留未读完的数据
 
+### Selector(待完善)
 
-### Selector
+
+## 文件编程
+
+### FileChannel
+
+`FileChannel`只能工作在`阻塞模式`下，可以通过`FileInputStream`, `FileOutputStream`和`RandomAccessFile`的`getChannel()`方法来获取，区别在于：
+
+- `FileInputStream`: 获取的channel只能读；
+- `FileOutputStream`: 获取的channel只能写；
+- `RadomAccessFile`: 根据设置的读写模式决定，例如`rw`既可以读也可以写
+
+### File Path
+
+对文件的操作通常是：移动、复制、删除、创建等。`Files`类提供了一些静态方法来操作文件，例如：
+
+- `Files.move(Path source, Path target, CopyOption... options)`: 移动文件
+- `Files.copy(Path source, Path target, CopyOption... options)`: 复制文件
+  - `StandardCopyOption.REPLACE_EXISTING`：如果目标文件存在，替换目标文件
+- `Files.delete(Path path)`: 删除文件
+- `Files.createDirecotries(Path path)`: 创建多级目录; `Files.createDirectory(Path path)`: 创建单个目录
+
+我们可以用这个API来做一些常见的操作，例如：
+
+1. 删除多级目录，如果我们直接调用`Files.delete()`方法，当目录非空的时候，会抛出`DirectoryNotEmptyException`异常。我们需要借助`Files.walkFileTree()`方法来遍历目录，然后删除目录下的所有文件和目录，最后删除目录本身。代码如下：
+
+```java
+public static void deleteDirectory(Path path) throws IOException {
+    Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+        // SimpleFileVisitor提供了4个方法可以重写，分别是：
+        // preVisitDirectory: 在访问目录前调用
+        // postVisitDirectory: 在访问目录后调用
+        // visitFile: 在访问文件时调用
+        // visitFileFailed: 在访问文件失败时调用
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            Files.delete(file);
+            return super.visitFile(file, attrs);
+        }
+
+        // 因此这里删除多级目录的思路是：访问到文件时，删除文件；访问到目录时因为没有重写preVisitDirectory方法，不进行任何操作
+        // 在删除了目录下所有文件后，因为重写了postVisitDirectory方法，最后删除目录
+        @Override
+        public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            Files.delete(dir);
+            return super.postVisitDirectory(dir, exc);
+        }
+    });
+}
+```
 
 # 网络编程
 
