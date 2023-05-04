@@ -1,9 +1,50 @@
+- [数组](#数组)
+  - [二分法(待完善)](#二分法待完善)
+    - [两种不同的写法](#两种不同的写法)
+    - [35.搜索插入位置](#35搜索插入位置)
 - [动态规划](#动态规划)
   - [题目类型划分](#题目类型划分)
     - [组合数，排列数](#组合数排列数)
   - [494.目标和](#494目标和)
   - [279.完全平方数](#279完全平方数)
   - [322.零钱兑换](#322零钱兑换)
+
+# 数组
+
+## 二分法(待完善)
+
+### 两种不同的写法
+
+**左闭右闭**
+```java
+while(left <= right){ // 此时是[left,right]
+    int middle = left + ((right - left) >> 1);
+    if (nums[middle] > target)
+        right = middle - 1; // 因为middle位置的元素在本轮已经比较过了，因此下一个区间内不应该包含middle处的元素
+    else if (nums[middle] < target)
+        left = middle + 1; // 同理如上
+    else
+        return middle;
+}
+```
+
+
+**左闭右开**
+
+```java
+while(left < right){ // 此时是[left,right)
+    int middle = left + ((right - left) >> 1);
+    if (nums[middle] > target)
+        right = middle; // 同理如上，但是此刻right是开区间，所以不需要-1
+    else if (nums[middle] < target)
+        left = middle + 1; 
+    else
+        return middle;
+}
+```
+
+### 35.搜索插入位置
+
 
 # 动态规划
 
