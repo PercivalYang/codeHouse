@@ -17,6 +17,7 @@
   - [文件编程](#文件编程)
     - [FileChannel](#filechannel)
     - [File Path](#file-path)
+  - [Selector](#selector)
 - [网络编程](#网络编程)
   - [Netty](#netty)
 - [jvm](#jvm)
@@ -240,7 +241,6 @@ public final Buffer flip() {
 
 ### Selector(待完善)
 
-
 ## 文件编程
 
 ### FileChannel
@@ -288,6 +288,37 @@ public static void deleteDirectory(Path path) throws IOException {
         }
     });
 }
+```
+
+## Selector
+
+由于非阻塞程序会一直循环等待事件到来，频繁的触发用户态和内核态的切换会导致资源的浪费，白白占用CPU的时间片段。引入`Selector`的目的是解决非阻塞的资源浪费问题，同时一个线程配合`Selector`可以监控多个不同事件，例如绑定服务器的`ServerSocketChannel`用作监听请求创建链接事件`OP_ACCEPT`，绑定`ServerSocketChannel`生成的`SocketChannel`用作监听读写事件`OP_READ`, `OP_WRITE`
+
+如何绑定`Selector`和`Channel`，如下：
+
+```java
+// 创建channel
+ServerSocketChannel ssc = ServerSocketChannel.open();
+// 创建selector
+selector = Selector.open();
+// 将channel和selector进行绑定
+SelectionKey ssckey = ssc.register(selector, 0, null);
+```
+
+可以设置Channel用于监听什么类型事件，例如监听创建链接事件：
+
+```java
+// 可以在创建链接后指定
+ssckey.interestOps(SelectionKey.OP_ACCEPT);
+// 也可以在创建链接时指定
+SelectionKey ssckey = ssc.register(selector, SelectionKey.OP_ACCEPT, null);
+```
+
+在程序开始时候通过`selector.select()`对程序进行阻塞直到监听到`Accept`事件时继续运行，此时`ServerSocketChannel`会通过`.accept()`方法返回`SocketChannel`来建立与客户端的通信信道。我们可以通过`Selector`将该信道绑定至监听读写事件，如下：
+
+```java
+ServerSocketChannel c = (ServerSocketChannel) key.channel();
+SocketChannel sc = c.accept();
 ```
 
 # 网络编程
