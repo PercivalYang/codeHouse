@@ -3,23 +3,19 @@
     - [常用注解](#常用注解)
   - [枚举](#枚举)
 - [泛型](#泛型)
-- [io](#io)
+- [IO](#io)
   - [序列化](#序列化)
   - [字节流](#字节流)
   - [字符流](#字符流)
   - [缓冲流](#缓冲流)
   - [Kryo](#kryo)
-- [NIO](#nio)
-  - [三大组件](#三大组件)
-    - [Channel](#channel)
-    - [Buffer](#buffer)
-    - [Selector(待完善)](#selector待完善)
-  - [文件编程](#文件编程)
-    - [FileChannel](#filechannel)
-    - [File Path](#file-path)
-  - [Selector](#selector)
+  - [NIO](#nio)
+    - [三大组件](#三大组件)
+    - [文件编程](#文件编程)
+  - [BIO](#bio)
+  - [AIO](#aio)
 - [网络编程](#网络编程)
-  - [Netty](#netty)
+- [Netty](#netty)
 - [jvm](#jvm)
   - [垃圾回收](#垃圾回收)
     - [gc要点](#gc要点)
@@ -109,7 +105,7 @@
 
 # 泛型
 
-# io
+# IO
 
 ## 序列化
 
@@ -165,17 +161,17 @@
 
 所有使用Kryo进行序列化的类，必须具有**无参构造方法**
 
-# NIO
+## NIO
 
-NIO: Non-blocking IO
+NIO: Non-blocking IO，即同步非阻塞I/O
 
-## 三大组件
+### 三大组件
 
-### Channel
+**Channel**
 
 双向数据通道，通过`Channel`可以从`Buffer`读和写数据。
 
-### Buffer
+**Buffer**
 
 常用的Buffer：
 
@@ -239,11 +235,40 @@ public final Buffer flip() {
 
 > `clear()`和`compact()`不同在于，如果`Buffer`中有没有读完的数据，即`position`指针没有移动到`limit`处，调用`clear()`会忽略未读完的数据，而调用`compact()`则会保留未读完的数据
 
-### Selector(待完善)
+**Selector**
 
-## 文件编程
+由于非阻塞程序会一直循环等待事件到来，频繁的触发用户态和内核态的切换会导致资源的浪费，白白占用CPU的时间片段。引入`Selector`的目的是解决非阻塞的资源浪费问题，同时一个线程配合`Selector`可以监控多个不同事件，例如绑定服务器的`ServerSocketChannel`用作监听请求创建链接事件`OP_ACCEPT`，绑定`ServerSocketChannel`生成的`SocketChannel`用作监听读写事件`OP_READ`, `OP_WRITE`
 
-### FileChannel
+如何绑定`Selector`和`Channel`，如下：
+
+```java
+// 创建channel
+ServerSocketChannel ssc = ServerSocketChannel.open();
+// 创建selector
+selector = Selector.open();
+// 将channel和selector进行绑定
+SelectionKey ssckey = ssc.register(selector, 0, null);
+```
+
+可以设置Channel用于监听什么类型事件，例如监听创建链接事件：
+
+```java
+// 可以在创建链接后指定
+ssckey.interestOps(SelectionKey.OP_ACCEPT);
+// 也可以在创建链接时指定
+SelectionKey ssckey = ssc.register(selector, SelectionKey.OP_ACCEPT, null);
+```
+
+在程序开始时候通过`selector.select()`对程序进行阻塞直到监听到`Accept`事件时继续运行，此时`ServerSocketChannel`会通过`.accept()`方法返回`SocketChannel`来建立与客户端的通信信道。我们可以通过`Selector`将该信道绑定至监听读写事件，如下：
+
+```java
+ServerSocketChannel c = (ServerSocketChannel) key.channel();
+SocketChannel sc = c.accept();
+```
+
+### 文件编程
+
+**FileChannel**
 
 `FileChannel`只能工作在`阻塞模式`下，可以通过`FileInputStream`, `FileOutputStream`和`RandomAccessFile`的`getChannel()`方法来获取，区别在于：
 
@@ -251,7 +276,7 @@ public final Buffer flip() {
 - `FileOutputStream`: 获取的channel只能写；
 - `RadomAccessFile`: 根据设置的读写模式决定，例如`rw`既可以读也可以写
 
-### File Path
+**File Path**
 
 对文件的操作通常是：移动、复制、删除、创建等。`Files`类提供了一些静态方法来操作文件，例如：
 
@@ -290,36 +315,13 @@ public static void deleteDirectory(Path path) throws IOException {
 }
 ```
 
-## Selector
+## BIO
 
-由于非阻塞程序会一直循环等待事件到来，频繁的触发用户态和内核态的切换会导致资源的浪费，白白占用CPU的时间片段。引入`Selector`的目的是解决非阻塞的资源浪费问题，同时一个线程配合`Selector`可以监控多个不同事件，例如绑定服务器的`ServerSocketChannel`用作监听请求创建链接事件`OP_ACCEPT`，绑定`ServerSocketChannel`生成的`SocketChannel`用作监听读写事件`OP_READ`, `OP_WRITE`
+BIO: Blocking I/O，即同步阻塞IO
 
-如何绑定`Selector`和`Channel`，如下：
+## AIO
 
-```java
-// 创建channel
-ServerSocketChannel ssc = ServerSocketChannel.open();
-// 创建selector
-selector = Selector.open();
-// 将channel和selector进行绑定
-SelectionKey ssckey = ssc.register(selector, 0, null);
-```
-
-可以设置Channel用于监听什么类型事件，例如监听创建链接事件：
-
-```java
-// 可以在创建链接后指定
-ssckey.interestOps(SelectionKey.OP_ACCEPT);
-// 也可以在创建链接时指定
-SelectionKey ssckey = ssc.register(selector, SelectionKey.OP_ACCEPT, null);
-```
-
-在程序开始时候通过`selector.select()`对程序进行阻塞直到监听到`Accept`事件时继续运行，此时`ServerSocketChannel`会通过`.accept()`方法返回`SocketChannel`来建立与客户端的通信信道。我们可以通过`Selector`将该信道绑定至监听读写事件，如下：
-
-```java
-ServerSocketChannel c = (ServerSocketChannel) key.channel();
-SocketChannel sc = c.accept();
-```
+Asynchronous I/O，即异步IO
 
 # 网络编程
 
@@ -405,7 +407,12 @@ public class HelloClient {
 
 然而这样的网络编程是**阻塞形式**的，服务端在调用`serverSocket.accpet()`时会触发阻塞，直到接收到客户端的请求时才会继续执行后面的程序
 
-## Netty
+# Netty
+
+一张服务器建立监听端口，客户端发起连接并发送字符串数据的流程图：
+
+![20230506212934](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230506212934.png)
+
 
 # jvm
 
