@@ -1,3 +1,4 @@
+- [国际化](#国际化)
 - [容器](#容器)
   - [BeanFactory](#beanfactory)
   - [ApplicationContext](#applicationcontext)
@@ -13,16 +14,15 @@
 - `@Value`: 可以注入`String`和基本类型(`@Autowired`只能注入Bean对象)
 - `@ConfigurationProperties`: 注入配置文件的字段到类的成员变量中([例子](https://bolder-macaroon-7fa.notion.site/ConfigurationProperties-436344970628419ea6440319ccd5a5dc))
 
+# 国际化
+
+
+
 # 容器
 
 ## BeanFactory
 
-是一个接口，有什么功能：
-
-- 通过`getBean`获取bean对象；
-- 判断Bean是否是单例或prototype
-
-而类似控制反转、依赖注入、Bean生命周期等功能，由他的实现类提供
+`BeanFactory`主要只有一个`getBean()`方法，可以通过名称或者类型获取Bean对象
 
 ## ApplicationContext
 
@@ -31,7 +31,7 @@
 - 国际化
 - 通过通配符获取Resource资源
 - 整合Environment环境
-- 事件的监听与发送（帮助事件解藕）
+- 事件的监听与发送（帮助事件解耦）
 
 ### 常见的实现类
 
