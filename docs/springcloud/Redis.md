@@ -6,6 +6,8 @@
     - [List](#list)
     - [Set](#set)
     - [Sorted Set](#sorted-set)
+- [SpringData](#springdata)
+  - [RedisTemplate](#redistemplate)
 
 # 常用命令
 
@@ -60,3 +62,50 @@
 ### Sorted Set
 
 比`Set`多了一个权重，可以用来做排行榜。命令类似，将`Set`命令首字母`S`换成`Z`即可。
+
+# SpringData
+
+依赖，配合SpringBoot开发使用：
+
+```xml
+<!--redis依赖-->
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+## RedisTemplate
+
+`RedisTemplate`提供了对Redis的各种操作，例如`opsForValue`返回的是`ValueOperations`，提供了对String类型的操作。
+
+`RedisTemplate`可以接受任意类型的数据，但是写入数据库前会进行序列化，默认采用JDK序列化，存在以下问题：
+
+- 可读性差
+- 占用空间大
+
+可以采用JSON序列化，但是需要自己实现序列化器，例如：
+
+```java
+@Configuration
+public class RedisConfig {
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory){
+        // 创建RedisTemplate对象
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        // 设置连接工厂
+        template.setConnectionFactory(connectionFactory);
+        // 创建JSON序列化工具
+        GenericJackson2JsonRedisSerializer jsonRedisSerializer =
+                new GenericJackson2JsonRedisSerializer();
+        // 设置Key的序列化
+        template.setKeySerializer(RedisSerializer.string());
+        template.setHashKeySerializer(RedisSerializer.string());
+        // 设置Value的序列化
+        template.setValueSerializer(jsonRedisSerializer);
+        template.setHashValueSerializer(jsonRedisSerializer);
+        // 返回
+        return template;
+    }
+}
+```
