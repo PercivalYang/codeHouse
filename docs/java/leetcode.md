@@ -1,3 +1,5 @@
+- [二叉树](#二叉树)
+  - [平衡二叉搜索树](#平衡二叉搜索树)
 - [数组](#数组)
   - [二分法(待完善)](#二分法待完善)
     - [两种不同的写法](#两种不同的写法)
@@ -9,6 +11,44 @@
   - [279.完全平方数](#279完全平方数)
   - [322.零钱兑换](#322零钱兑换)
 
+# 二叉树
+
+## 平衡二叉搜索树
+
+题目链接：[1382.将二叉搜索树变平衡](https://leetcode-cn.com/problems/balance-a-binary-search-tree/)
+
+这道题其实是将 [108.将有序数组转换为二叉搜索树](https://leetcode-cn.com/problems/convert-sorted-array-to-binary-search-tree/) 和 [98.验证二叉搜索树](https://leetcode-cn.com/problems/validate-binary-search-tree/) 结合起来的题目。
+
+题目给的是二叉搜索树，因此通过中序遍历后一定会得到一个递增的数组(98题的思路：利用中序遍历验证二叉搜索树)，然后将该有序数组转换成平衡二叉搜索树(108题的思路：利用二分法将有序数组转换成平衡二叉搜索树)。
+
+```java
+class Solution {
+    public TreeNode balanceBST(TreeNode root) {
+        List<Integer> list = new ArrayList<>();
+        traversal(root, list);
+        return balanceBST(list, 0, list.size() - 1);
+    }
+
+    private void traversal(TreeNode root, List<Integer> list) {
+        // 中序遍历二叉搜索树，得到一个递增的数组list
+        if (root == null) return;
+        traversal(root.left, list);
+        list.add(root.val);
+        traversal(root.right, list);
+    }
+
+    private TreeNode balanceBST(List<Integer> list, int left, int right) {
+        // 二分法将有序数组转换成平衡二叉搜索树
+        // 注意迭代的left和right下标范围
+        if (left > right) return null;
+        int middle = left + (right - left) / 2;
+        return new TreeNode(list.get(middle),
+                balanceBST(list, left, middle - 1),
+                balanceBST(list, middle + 1, right));
+    }
+}
+```
+
 # 数组
 
 ## 二分法(待完善)
@@ -16,6 +56,7 @@
 ### 两种不同的写法
 
 **左闭右闭**
+
 ```java
 while(left <= right){ // 此时是[left,right]
     int middle = left + ((right - left) >> 1);
@@ -27,7 +68,6 @@ while(left <= right){ // 此时是[left,right]
         return middle;
 }
 ```
-
 
 **左闭右开**
 
@@ -44,7 +84,6 @@ while(left < right){ // 此时是[left,right)
 ```
 
 ### 35.搜索插入位置
-
 
 # 动态规划
 
