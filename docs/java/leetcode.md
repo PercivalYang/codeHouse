@@ -1,9 +1,12 @@
-- [二叉树](#二叉树)
-  - [平衡二叉搜索树](#平衡二叉搜索树)
 - [数组](#数组)
   - [二分法(待完善)](#二分法待完善)
     - [两种不同的写法](#两种不同的写法)
     - [35.搜索插入位置](#35搜索插入位置)
+- [二叉树](#二叉树)
+  - [层序遍历](#层序遍历)
+  - [平衡二叉搜索树](#平衡二叉搜索树)
+- [回溯算法](#回溯算法)
+  - [N皇后](#n皇后)
 - [动态规划](#动态规划)
   - [题目类型划分](#题目类型划分)
     - [组合数，排列数](#组合数排列数)
@@ -11,7 +14,92 @@
   - [279.完全平方数](#279完全平方数)
   - [322.零钱兑换](#322零钱兑换)
 
+# 数组
+
+## 二分法(待完善)
+
+### 两种不同的写法
+
+**左闭右闭**
+
+```java
+while(left <= right){ // 此时是[left,right]
+    int middle = left + ((right - left) >> 1);
+    if (nums[middle] > target)
+        right = middle - 1; // 因为middle位置的元素在本轮已经比较过了，因此下一个区间内不应该包含middle处的元素
+    else if (nums[middle] < target)
+        left = middle + 1; // 同理如上
+    else
+        return middle;
+}
+```
+
+**左闭右开**
+
+```java
+while(left < right){ // 此时是[left,right)
+    int middle = left + ((right - left) >> 1);
+    if (nums[middle] > target)
+        right = middle; // 同理如上，但是此刻right是开区间，所以不需要-1
+    else if (nums[middle] < target)
+        left = middle + 1; 
+    else
+        return middle;
+}
+```
+
+### 35.搜索插入位置
 # 二叉树
+
+## 层序遍历
+
+层序遍历也称作广度优先遍历，可以利用队列的`FIFO`特性，进行一层一层的遍历，代表题目有：
+
+- [102.二叉树的层序遍历](https://leetcode-cn.com/problems/binary-tree-level-order-traversal/)
+- [107.二叉树的层序遍历II](https://leetcode-cn.com/problems/binary-tree-level-order-traversal-ii/)
+
+下面是102题的代码实现：
+
+```java
+class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        Queue<TreeNode> queue = new LinkedList<>();
+        List<List<Integer>> res = new ArrayList<>();
+        if (root != null) queue.add(root);
+        while (!queue.isEmpty()) {
+            // 每一层的节点数
+            int size = queue.size();
+            // 记录每一层的节点值
+            List<Integer> tempList = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                TreeNode tempNode = queue.poll();
+                tempList.add(tempNode.val);
+                // 添加的顺序是从左往右，因此层序遍历的结果也是从左往右
+                if (tempNode.left != null) queue.add(tempNode.left);
+                if (tempNode.right != null) queue.add(tempNode.right);
+            }
+            res.add(tempList);
+        }
+        return res;
+    }
+}
+```
+
+102题是从树的根节点开始层序遍历，107题是从树的叶子节点开始层序遍历，与102相反。但遍历的思路是相同的，都是利用队列的`FIFO`特性，进行一层一层的遍历。
+
+我们通过查看同一个树的遍历结果，102题是：
+
+```java
+[[3],[9,20],[15,7]]
+```
+
+107题是：
+
+```java
+[[15,7],[9,20],[3]]
+```
+
+我们102题向`res`中添加`tempList`是从尾部开始添加的，因此107题可以从头部开始添加，这样就可以得到从叶子节点开始的层序遍历结果。即将`res`的声明类型从`List<List<Integer>>`改为`LinkedList<List<Integer>>`，然后将`res.add(tempList)`改为`res.addFirst(tempList)`即可。
 
 ## 平衡二叉搜索树
 
@@ -49,41 +137,101 @@ class Solution {
 }
 ```
 
-# 数组
+# 回溯算法
 
-## 二分法(待完善)
+## N皇后
 
-### 两种不同的写法
+题目链接：[51.N皇后](https://leetcode-cn.com/problems/n-queens/)
 
-**左闭右闭**
+回溯的经典题目，先想到利用回溯算法是第一步，这点不难，难在接下来的细节，如下：
+
+- 如何判断当前棋盘位置能否下皇后？ -> `isValid`方法的实现
+- 对于Java语言，棋盘采用`char[][]`的数据类型时，如何转换为需要返回的结果数据类型：`List<List<String>>`
+
+首先第一步是回溯的方法实现：
 
 ```java
-while(left <= right){ // 此时是[left,right]
-    int middle = left + ((right - left) >> 1);
-    if (nums[middle] > target)
-        right = middle - 1; // 因为middle位置的元素在本轮已经比较过了，因此下一个区间内不应该包含middle处的元素
-    else if (nums[middle] < target)
-        left = middle + 1; // 同理如上
-    else
-        return middle;
+private void backtracking(int n, char[][] chessboard, int row) {
+    // 当row == n时，说明已经成功摆放了n个皇后，可以返回
+    if (row == n) {
+        // res是一个全局变量，即我们最重要返回的结果
+        res.add(Array2List(chessboard));
+        return;
+    }
+    for (int col = 0; col < n; col++) {
+        // 判断当前位置是否可以放皇后
+        if (isValid(row, col, chessboard, n)) {
+            chessboard[row][col] = 'Q';
+            backtracking(n, chessboard, row + 1);
+            // 回溯，将之前位置的皇后移除
+            chessboard[row][col] = '.';
+        }
+    }
 }
 ```
 
-**左闭右开**
+然后先看如何判断当前棋盘位置能否下皇后，即`isValid`方法的实现：
 
 ```java
-while(left < right){ // 此时是[left,right)
-    int middle = left + ((right - left) >> 1);
-    if (nums[middle] > target)
-        right = middle; // 同理如上，但是此刻right是开区间，所以不需要-1
-    else if (nums[middle] < target)
-        left = middle + 1; 
-    else
-        return middle;
+private boolean isValid(int row, int col, char[][] chessboard, int n) {
+    // 检查列
+    for (int i = 0; i < row; i++) {
+        if (chessboard[i][col] == 'Q') {
+            return false;
+        }
+    }
+    // 检查左上
+    for (int i = row - 1, j = col - 1; i >= 0 && j >= 0; i--, j--) {
+        if (chessboard[i][j] == 'Q') {
+            return false;
+        }
+    }
+    // 检查右上
+    for (int i = row - 1, j = col + 1; i >= 0 && j < n; i--, j++) {
+        if (chessboard[i][j] == 'Q') {
+            return false;
+        }
+    }
+    return true;
 }
 ```
 
-### 35.搜索插入位置
+当时写到这产生了几个问题：
+
+- 为什么不检查右下和左下是否有皇后？
+  - A：我们是通过行(`row`)来进行层序遍历的，因此在我们判断当前行`isValid`时，下方的行还没有放置皇后，因此不需要进行遍历判断
+- 为什么不遍历行？
+  - A：因为在`backtracking`方法中，我们回溯的时候将原本位置上的皇后移除了，保证每一行只会存在一个皇后，因此不需要遍历行
+
+最后是如何将`char[][]`转换为`List<List<String>>`，即`Array2List`方法的实现：
+
+```java
+private List<String> Array2List(char[][] chessboard) {
+    List<String> res = new ArrayList<>();
+    for (char[] chars : chessboard) {
+        // 将char[]转换为Strin
+        res.add(String.copyValueOf(chars));
+    }
+    return res;
+}
+```
+
+还有一个需要注意的细节是我们在初始化棋盘`char[][] chessboard`时，也要将棋盘内的值都初始化为`.`，因此主函数中的初始化为：
+
+```java
+public List<List<String>> solveNQueens(int n) {
+    char[][] chessboard = new char[n][n];
+    // 初始化棋盘
+    for (char[] chars : chessboard) {
+        Arrays.fill(chars, '.');
+    }
+    backtracking(n, chessboard, 0);
+    return res;
+}
+```
+
+完整代码见[这里](https://programmercarl.com/0051.N%E7%9A%87%E5%90%8E.html#java)
+
 
 # 动态规划
 
