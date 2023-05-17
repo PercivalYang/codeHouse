@@ -3,6 +3,8 @@
     - [常用注解](#常用注解)
   - [枚举](#枚举)
 - [泛型](#泛型)
+  - [泛型类型](#泛型类型)
+  - [泛型擦除](#泛型擦除)
 - [IO](#io)
   - [序列化](#序列化)
   - [字节流](#字节流)
@@ -16,6 +18,8 @@
   - [AIO](#aio)
 - [网络编程](#网络编程)
 - [Netty](#netty)
+  - [组件](#组件)
+    - [EventLoop](#eventloop)
 - [jvm](#jvm)
   - [垃圾回收](#垃圾回收)
     - [gc要点](#gc要点)
@@ -106,6 +110,66 @@
 
 # 泛型
 
+## 泛型类型
+
+泛型包括：
+
+- 泛型方法
+- 泛型接口
+- 泛型类
+
+泛型方法主要指静态方法，例如：
+
+```java
+public static <E> void printArray(E[] inputArray) {
+    for (E element : inputArray) {
+        System.out.printf("%s ", element);
+    }
+    System.out.println();
+}
+```
+
+泛型接口的实现方法可以指定或不指定接口中泛型的具体类型，例如：
+
+```java
+public interface Generator<T> {
+    T next();
+}
+```
+
+```java
+public class GeneratorImpl implements Generator<T> {
+    @Override
+    // 实现的方法指定了具体类型为String
+    public String next() {
+        return null;
+    }
+}
+```
+
+```java
+public class GeneratorImpl<T> implements Generator<T> {
+    @Override
+    // 不指定具体类型
+    public T next() {
+        return null;
+    }
+}
+```
+
+## 泛型擦除
+
+泛型在编译期间，`T`会被擦除为`Object`，`T extends xxx`会被擦除为`xxx`。
+
+如果不了解该机制，自己写`Overload`方法时可能会出现以下问题：
+
+```java
+public void method(List<String> list) {}
+public void method(List<Integet> list) {}
+```
+
+上述的程式会报错，因为`String`和`Integer`最后都会被擦除为`Object`类型，因此两个方法的签名是一样的，会报错。
+
 # IO
 
 ## 序列化
@@ -170,7 +234,7 @@ NIO: Non-blocking IO，即同步非阻塞I/O
 
 **Channel**
 
-双向数据通道，通过`Channel`可以从`Buffer`读和写数据。
+数据从`Channel`到来后，本地通过线程将`Channel`中的数据读取到`Buffer`中；同样如果需要发送数据给服务器/客户端，可以通过将数据先发送到`Buffer`，然后再写给`Channel`以此来发送数据。
 
 **Buffer**
 
@@ -413,6 +477,57 @@ public class HelloClient {
 一张服务器建立监听端口，客户端发起连接并发送字符串数据的流程图：
 
 ![20230506212934](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230506212934.png)
+
+## 组件
+
+### EventLoop
+
+EventLoop本质是一个单线程执行器，可用于处理连接、接收数据、发送数据等事件。
+
+EventLoopGroup是一组EventLoop，通常Channel会选择EventLoopGroup中的一个EventLoop进行注册，以便处理连接、接收数据、发送数据等事件，保证了线程的安全性
+
+`NioEventLoopGroup`: 可用于处理io事件、普通任务和定时任务
+
+`DefaultEventLoopGroup`: 可用于处理普通任务和定时任务(不能处理io事件)
+
+举个例子，服务器的代码如下：
+
+```java
+// 2个可以处理普通任务和定时任务的EventLoop
+DefaultEventLoopGroup normalWorkers = new DefaultEventLoopGroup(2);
+new ServerBootstrap()
+    // 3个可以处理io、普通任务和定时任务的EventLoop
+    .group(new NioEventLoopGroup(1), new NioEventLoopGroup(2))
+    .channel(NioServerSocketChannel.class)
+    .childHandler(new ChannelInitializer<NioSocketChannel>() {
+        @Override
+        protected void initChannel(NioSocketChannel ch)  {
+            ch.pipeline().addLast(new LoggingHandler(LogLevel.DEBUG));
+            ch.pipeline().addLast(normalWorkers,"myhandler",
+              new ChannelInboundHandlerAdapter() {
+                @Override
+                public void channelRead(ChannelHandlerContext ctx, Object msg) {
+                    ByteBuf byteBuf = msg instanceof ByteBuf ? ((ByteBuf) msg) : null;
+                    if (byteBuf != null) {
+                        byte[] buf = new byte[16];
+                        ByteBuf len = byteBuf.readBytes(buf, 0, byteBuf.readableBytes());
+                        log.debug(new String(buf));
+                    }
+                }
+            });
+        }
+    }).bind(8080).sync();
+```
+
+- 为什么要单独创建一个`DefaultEventLoopGroup`?
+
+  A: `NioEventLoop`不止负责io事件还要负责普通任务时，如果普通任务执行时间过长，为阻塞其绑定的`Channel`上之后到来的数据的io事件。因此通常`NioEventLoop`只负责处理io事件，普通任务和定时任务交给`DefaultEventLoop`处理。(本质上是将IO事件和普通任务交由不同的线程处理)
+
+- 不同Handler执行结束后如何切换`EventLoop`？
+
+  A: `io.netty.channel.AbstractChannelHandlerContext`抽象类中存在各种`invoke*`的方法，包括`invokeRead`, `invokeWrite`, `invokeHandler`等。抽象来说，在方法内部会判断Handler是否绑定的同一个`EventLoop`，如果绑定的话就直接在EventLoop本地执行Handler，否则新建一个`EventLoop`(Thread)来执行。下面以源码中的`invokeChannelRead`为例
+
+  ![20230517223619](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230517223619.png)
 
 
 # jvm
