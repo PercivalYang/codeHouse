@@ -1,3 +1,4 @@
+- [常用注解](#常用注解)
 - [国际化](#国际化)
 - [容器](#容器)
   - [BeanFactory](#beanfactory)
@@ -5,18 +6,20 @@
     - [常见的实现类](#常见的实现类)
 - [AOP](#aop)
   - [基于XML的AOP模板](#基于xml的aop模板)
+- [Spring整合事务](#spring整合事务)
+  - [Transactional注解](#transactional注解)
+  - [事务的传播规则(待完善)](#事务的传播规则待完善)
 
-## 常用注解
+# 常用注解
 
 - `@Autowired`: 只能通过类型匹配，多类型时优先选同名称或类型匹配最严格的bean;
 - `@Qualifier`: 协助`@Autowired`匹配名称;
 - `@Resource`: 可以指定名称匹配；
 - `@Value`: 可以注入`String`和基本类型(`@Autowired`只能注入Bean对象)
 - `@ConfigurationProperties`: 注入配置文件的字段到类的成员变量中([例子](https://bolder-macaroon-7fa.notion.site/ConfigurationProperties-436344970628419ea6440319ccd5a5dc))
+- `@Transactional`
 
 # 国际化
-
-
 
 # 容器
 
@@ -84,3 +87,26 @@
     </aop:aspect>
 </aop:config>
 ```
+
+# Spring整合事务
+
+## Transactional注解
+
+- `rollbackFor`指定回滚的异常类型，`propagation`指定事务的传播行为，例如：
+
+```java
+@Transactional(rollbackFor = Exception.class,propagation = Propagation.REQUIRED)
+```
+
+- `rollbackOn`方法中指定了默认回滚的异常，默认回滚的异常有`RuntimeException`和`Error`及它们的子类，源码如下
+
+```java
+@Override
+public boolean rollbackOn(Throwable ex) {
+  return (ex instanceof RuntimeException || ex instanceof Error);
+}
+```
+
+- 不能回滚被`try...catch`捕获的异常
+
+## 事务的传播规则(待完善)
