@@ -1,6 +1,8 @@
 - [注解和枚举](#注解和枚举)
   - [注解](#注解)
     - [常用注解](#常用注解)
+  - [lombok](#lombok)
+    - [@Builder](#builder)
   - [枚举](#枚举)
 - [泛型](#泛型)
   - [泛型类型](#泛型类型)
@@ -16,26 +18,17 @@
     - [文件编程](#文件编程)
   - [BIO](#bio)
   - [AIO](#aio)
+- [反射](#反射)
+  - [获取Class的方式](#获取class的方式)
+  - [反射的作用](#反射的作用)
+  - [动态代理](#动态代理)
+    - [JDK代理](#jdk代理)
+    - [cglib代理](#cglib代理)
 - [网络编程](#网络编程)
-- [Netty](#netty)
-  - [EventLoop](#eventloop)
-  - [Channel](#channel)
-    - [ChannelFuture](#channelfuture)
-  - [Future \&\& Promise](#future--promise)
-  - [Handler \&\& Pipeline](#handler--pipeline)
-  - [ByteBuf](#bytebuf)
-    - [直接内存 \&\& 堆内存](#直接内存--堆内存)
-    - [池化](#池化)
-    - [slice](#slice)
-    - [copy \& duplicate \& CompositeByteBuf](#copy--duplicate--compositebytebuf)
-    - [工具类Unpooled](#工具类unpooled)
-- [jvm](#jvm)
-  - [垃圾回收](#垃圾回收)
-    - [gc要点](#gc要点)
-    - [并发漏标问题(待完善)](#并发漏标问题待完善)
-    - [不同的垃圾回收器](#不同的垃圾回收器)
-    - [导致内存溢出的情况](#导致内存溢出的情况)
 - [多线程](#多线程)
+  - [Unsafe类](#unsafe类)
+    - [内存操作](#内存操作)
+    - [内存屏障(待完善)](#内存屏障待完善)
   - [线程的生命周期](#线程的生命周期)
   - [对象头](#对象头)
     - [mark word(待完善)](#mark-word待完善)
@@ -59,15 +52,8 @@
       - [ReadWriteLock（待完善）](#readwritelock待完善)
       - [StampedLock（待完善）](#stampedlock待完善)
     - [信号量（待完善）](#信号量待完善)
-      - [**P、V操作**](#pv操作)
-- [反射](#反射)
-  - [动态代理](#动态代理)
-    - [JDK代理](#jdk代理)
-    - [cglib代理](#cglib代理)
-- [注解](#注解-1)
-  - [常用注解](#常用注解-1)
-  - [lombok](#lombok)
-    - [@Builder](#builder)
+      - [P、V操作](#pv操作)
+- [SPI(待完善)](#spi待完善)
 
 # 注解和枚举
 
@@ -86,9 +72,10 @@
 
   ![20230426214106](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426214106.png)
 
-- `@Retention`: 用于指定注解的生命周期，有三个值：
-
-  ![20230426214543](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426214543.png)
+- `@Retention`: 指定注解的存活时间，如编译、类加载、运行时
+  - RetentionPolicy.SOURCE：注解仅在源代码中保留，编译时会被丢弃。
+  - RetentionPolicy.CLASS：注解在编译时保留，在类加载时被丢弃。
+  - RetentionPolicy.RUNTIME：注解在运行时保留，可以通过反射机制读取。
 
 - `@Target`: 用于指明注解可以修饰的目标，例如：
 
@@ -114,6 +101,22 @@
   ```
 
   此时虽然`Child`类没有被`@hasInherited`注解修饰，但如果通过反射`Child.class.getAnnotations()`方法获取到的注解数组中，会包含`@hasInherited`注解。
+
+## lombok
+
+### @Builder
+
+`@Builder`注解主要是帮助省去了`set`方法，通过流式编程的方式为对象的每个成员变量赋值，例如
+
+```java
+// Studeten包含sno, sname, sage, sphone等成员变量
+Student.builder()
+       .sno( "001" )
+       .sname( "admin" )
+       .sage( 18 )
+       .sphone( "110" )
+       .build();
+```
 
 ## 枚举
 
@@ -397,6 +400,64 @@ BIO: Blocking I/O，即同步阻塞IO
 
 Asynchronous I/O，即异步IO
 
+# 反射
+
+## 获取Class的方式
+
+1. 通过具体的类名时:
+
+  ```java
+  Class class = ClassName.class;
+  ```
+
+2. 通过类路径:
+
+    - 通过`Class.forName()`方法
+
+      ```java
+      Class class = Class.forName("com.example.ClassName");
+      ```
+
+    - 通过类加载器
+
+      ```java
+      ClassLoader.getSystemClassLoader().loadClass("cn.javaguide.TargetObject");
+      ```
+
+3. 通过实例对象:
+
+  ```java
+  ClassName instance = new ClassName();
+  Class class = instance.getClass();
+  ```
+
+## 反射的作用
+
+通过反射可以获取类的：
+
+- 方法，Java中`Method`是发射包中的类
+  - `method.invoke(Object instance, Object... args)`方法可以调用实例对象的方法
+-
+
+## 动态代理
+
+创建动态代理实例`Proxy.newProxyInstance(classLoader, interfaces, invocationHandler)`三个参数分别代表如下：
+
+- `classLoader`：目标对象的类加载起
+- `interfaces`：目标对象实现的所有接口
+- `invocationHandler`：如何重写目标对象的方法过程
+
+其中`invocationHandler`是一个接口，要实现`invoke`方法来重写目标对象的方法过程。
+
+### JDK代理
+
+- 代理对象和目标对象实现同个接口
+
+### cglib代理
+
+- 代理对象继承自目标对象
+
+
 # 网络编程
 
 ![20230426155332](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426155332.png)
@@ -481,226 +542,52 @@ public class HelloClient {
 
 然而这样的网络编程是**阻塞形式**的，服务端在调用`serverSocket.accpet()`时会触发阻塞，直到接收到客户端的请求时才会继续执行后面的程序
 
-# Netty
-
-一张服务器建立监听端口，客户端发起连接并发送字符串数据的流程图：
-
-![20230506212934](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230506212934.png)
-
-## EventLoop
-
-EventLoop本质是一个单线程执行器，可用于处理连接、接收数据、发送数据等事件。
-
-EventLoopGroup是一组EventLoop，通常Channel会选择EventLoopGroup中的一个EventLoop进行注册，以便处理连接、接收数据、发送数据等事件，保证了线程的安全性
-
-`NioEventLoopGroup`: 可用于处理io事件、普通任务和定时任务
-
-`DefaultEventLoopGroup`: 可用于处理普通任务和定时任务(不能处理io事件)
-
-举个例子，服务器的代码如下：
-
-```java
-// 2个可以处理普通任务和定时任务的EventLoop
-DefaultEventLoopGroup normalWorkers = new DefaultEventLoopGroup(2);
-new ServerBootstrap()
-    // 3个可以处理io、普通任务和定时任务的EventLoop
-    .group(new NioEventLoopGroup(1), new NioEventLoopGroup(2))
-    .channel(NioServerSocketChannel.class)
-    .childHandler(new ChannelInitializer<NioSocketChannel>() {
-        @Override
-        protected void initChannel(NioSocketChannel ch)  {
-            ch.pipeline().addLast(new LoggingHandler(LogLevel.DEBUG));
-            ch.pipeline().addLast(normalWorkers,"myhandler",
-              new ChannelInboundHandlerAdapter() {
-                @Override
-                public void channelRead(ChannelHandlerContext ctx, Object msg) {
-                    ByteBuf byteBuf = msg instanceof ByteBuf ? ((ByteBuf) msg) : null;
-                    if (byteBuf != null) {
-                        byte[] buf = new byte[16];
-                        ByteBuf len = byteBuf.readBytes(buf, 0, byteBuf.readableBytes());
-                        log.debug(new String(buf));
-                    }
-                }
-            });
-        }
-    }).bind(8080).sync();
-```
-
-- 为什么要单独创建一个`DefaultEventLoopGroup`?
-
-  A: `NioEventLoop`不止负责io事件还要负责普通任务时，如果普通任务执行时间过长，为阻塞其绑定的`Channel`上之后到来的数据的io事件。因此通常`NioEventLoop`只负责处理io事件，普通任务和定时任务交给`DefaultEventLoop`处理。(本质上是将IO事件和普通任务交由不同的线程处理)
-
-- 不同Handler执行结束后如何切换`EventLoop`？
-
-  A: `io.netty.channel.AbstractChannelHandlerContext`抽象类中存在各种`invoke*`的方法，包括`invokeRead`, `invokeWrite`, `invokeHandler`等。抽象来说，在方法内部会判断Handler是否绑定的同一个`EventLoop`，如果绑定的话就直接在EventLoop本地执行Handler，否则新建一个`EventLoop`(Thread)来执行。下面以源码中的`invokeChannelRead`为例
-
-  ![20230517223619](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230517223619.png)
-
-## Channel
-
-channel的常用方法：
-
-- `close()`: 关闭channel
-- `closeFuture()`: 返回一个`ChannelFuture`，用于监听channel的关闭事件
-- `pipeline()`: 返回一个`ChannelPipeline`，用于管理channel中的handler
-- `writeAndFlush()`: 将数据写入channel并刷新
-- `write()`: 将数据写入channel
-
-### ChannelFuture
-
-`BootStrap`的`connect()`方法返回一个`ChannelFuture`，我们可以利用`ChannelFuture`对象来监听**连接建立成功后的事件**
-
-```java
-public ChannelFuture connect(String inetHost, int inetPort) {
-    return connect(InetSocketAddress.createUnresolved(inetHost, inetPort));
-}
-```
-
-`ChannelFuture`对象可以获取到建立连接后传输数据的`Channel`对象，有两种方法获取：
-
-- `sync()`方法同步获取
-- `addListener()`方法异步获取
-
-```java
-// 同步获取channel
-Channel channel = channelFuture.sync().channel();
-// 异步获取
-channelFuture.addListener((ChannelFutureListener) future -> {
-  // 内部是获取成功
-  System.out.println(future.channel())
-});
-```
-
-同样`channel`也有`closeFuture()`方法，用于监听channel的关闭事件，例如
-
-```java
-ChannelFuture closeFuture = channel.clouseFuture()
-closeFuture.addListener(new ChannelFutureListener() {
-    @Override
-    public void operationComplete(ChannelFuture future) throws Exception {
-        log.debug("处理关闭之后的操作");
-        group.shutdownGracefully();
-    }
-});
-```
-
-## Future && Promise
-
-Netty的`Future`继承自`java.util.concurrent.Future`，JDK中的`Future`只能同步等待任务结束才能得到结果，而Netty的`Future`可以异步获取任务结果(例如前面提到的`addListener`)。
-
-`Promise`继承自Netty的`Future`，它有`Future`的所有功能，同时独立于任务之外单独存在，作为线程之间传递任务结果的容器。
-
-## Handler && Pipeline
-
-ChannelHandler用于处理Channel上的各种事件，分**入站**、**出站**两种。
-
-- 入站：`ChannelInboundHandler`，主要用于读取客户端数据，并返回结果
-- 出站：`ChannelOutboundHandler`，对返回结果进行加工
-
-ChannelPipeline是一个双向链表，链表中默认会有`head`和`tail`分别代表头尾。**入站的Handler顺序是从`head`到`tail`，出站的Handler顺序是从`tail`到`head`。**
-
-## ByteBuf
-
-ByteBuf组成中有四个成员属性：
-
-- readIndex
-- writeIndex
-- capacity
-- max capacity
-
-![20230521134353](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230521134353.png)
-
-### 直接内存 && 堆内存
-
-ByteBuf的申请有两种方式，一种是申请堆内存，一种是申请直接内存。直接内存相比堆内存的优势在于不需要拷贝到堆内存中再进行io操作(即读写效率高，"零拷贝")，但是直接内存的申请和释放需要调用系统调用，相比堆内存的申请和释放效率较低。
-
-同时直接内存不受GC管理，对GC压力小，但是需要手动释放内存。
-
-### 池化
-
-池化让ByteBuf可以重用(类似线程池)，减少内存申请和释放的开销。
-
-**retain & release**
-
-Netty通过[“引用计数法”](./JVM.md#引用计数法)来控制回收内存，即每个ByeBuf都实现了`ReferenceCounted`接口
-
-- ByteBuf的初始计数为1
-- 调用`retain()`方法，计数加1
-- 调用`release()`方法，计数减1
-- 当计数为0时，底层内存会被回收
-
-因为前面讲过pipeline，会将ByteBuf传递给下一个Handler，一般谁是最后的使用者，谁负责release
-
-- Handler不处理ByteBuf直接通过`ctx.fireChannelRead(msg)`向后传递时，无需 release
-- Handler将ByteBuf转换成Java对象，这时ByteBuf不再需要时，需 release
-- 如果不再向后传递或者抛出异常，需 release
-- pipeline有tail节点，会通过`TailContext`进行回收(这是对于入站消息)
-- 同样对于出站消息，pipeline有head节点，会通过`HeadContext`进行回收
-
-### slice
-
-slice是将原始ByteBuf切片成多个ByteBuf，切片后的ByteBuf与原始ByteBuf**共享底层内存**，但是各自维护自己的readIndex、writeIndex和capacity。例如：
-
-```java
-ByteBuf buf = Unpooled.buffer(10);
-buf.writeBytes("hello world".getBytes());
-// 0是readIndex，5是length
-ByteBuf slice = buf.slice(0, 5);
-// 无参的话，切片readIndex到writeIndex的内容 
-ByteBuf slice2 = buf.slice();
-```
-
-- 切片会将maxCapacity设置为原始ByteBuf的readIndex到writeIndex的长度，即切片后的ByteBuf不能再往里面写数据，否则会抛出IndexOutOfBoundsException
-
-### copy & duplicate & CompositeByteBuf
-
-`duplicate`与原始ByteBuf共享底层内存，但是各自维护自己的readIndex、writeIndex和capacity。
-
-`copy`与原始ByteBuf不共享底层内存
-
-`CompositeByteBuf`是一个复合ByteBuf，它可以将多个ByteBuf组合成一个ByteBuf，组合后的ByteBuf与原始ByteBuf**不共享底层内存**
-
-### 工具类Unpooled
-
-- `wrappedBuffer`：将字节数组、字节缓冲区、字符串包装成ByteBuf
-
-# jvm
-
-## 垃圾回收
-
-### gc要点
-
-- 主要是**堆内存**，本地方法栈和jvm栈会自动释放已结束的方法所占内存；
-- 通过可达性分析算法、三色标记法来标记存活对象，回收未标记对象；
-- 用分代回收思想，根据对象特性将回收区域分为新生代和老年代，不同区域不同回收策略；
-- 根据gc回收规模分为：minor gc，mixed gc，full gc
-  - minor gc：新生代，异步，不中断主程序
-  - mixed gc：新生代+老年代，g1 gc特有
-  - full gc：新生代+老年代，中断主程序
-
-### 并发漏标问题(待完善)
-
-### 不同的垃圾回收器
-
-- **parallel gc**
-  - eden内存不足发生minor gc，标记复制，同时**stw（stop-the-world）**
-  - old内存不足发生full gc，标记复制stw
-  - 吞吐量优（但会经常stw，响应时间差）
-- **cms gc**（concurrentmarksweep gc）：
-  - 老年代的并发标记清除（会有内存碎片问题）
-  - 如果失败则full gc
-  - 响应时间优（因为和主程序并发）
-- **g1 gc**
-  - 兼顾响应时间和吞吐量
-
-### 导致内存溢出的情况
-
-- **线程池中有线程阻塞**，但是调用的线程池方法中对runnable对象的数量没有限制，导致runnable对象无限加载，直至outofmemorry；
-- **查询数据量太大导致内存溢出**，例如对数据库查询没有加`limit`限制，一次用户查询返回的数据量可能多至`300m`，查询用户多后则可能触发oom；
-- **动态生成类导致的内存溢出**，例如定义了一个静态的对象，由于它是静态即根对象，若通过该静态对象调用方法无限制的加载新的对象，这些对象都会被gc通过*可到达性标记*进行标记，这样垃圾回收无法回收这些对象而导致oom；
-  - 解决：可以将静态对象设置为方法内部变量，这样gc便可以回收其在堆上新创建出的对象
-
 # 多线程
+
+## Unsafe类
+
+主要功能有：
+
+1. 内存操作
+2. 内存屏障
+3. 对象操作
+4. 数据操作
+5. CAS 操作
+6. 线程调度
+7. Class 操作
+8. 系统信息
+
+### 内存操作
+
+```java
+// 申请bytes字节的空间，返回long型的地址信息
+public native long allocateMemory(long bytes);
+//重新调整内存空间的大小
+public native long reallocateMemory(long address, long bytes);
+//将内存设置为指定值
+public native void setMemory(Object o, long offset, long bytes, byte value);
+//内存拷贝
+public native void copyMemory(Object srcBase, long srcOffset,Object destBase, long destOffset,long bytes);
+//清除内存
+public native void freeMemory(long address);
+```
+
+本地方法申请的都是堆外内存，无法通过GC回收，需要手动通过`freeMemory`进行释放。
+
+### 内存屏障(待完善)
+
+```java
+//内存屏障，禁止load操作重排序。屏障前的load操作不能被重排序到屏障后，屏障后的load操作不能被重排序到屏障前
+public native void loadFence();
+//内存屏障，禁止store操作重排序。屏障前的store操作不能被重排序到屏障后，屏障后的store操作不能被重排序到屏障前
+public native void storeFence();
+//内存屏障，禁止load、store操作重排序
+public native void fullFence();
+```
+
+内存屏障可以看做一个同步点，会禁止屏障前的读/写操作**重排序**，保证同步点前所有读写操作执行完成后再执行后续程序
+
+(待完善) load和store操作分别是什么
 
 ## 线程的生命周期
 
@@ -847,64 +734,22 @@ if (lock.tryLock(1, TimeUnit.SECONDS)) {
 > 待完善：如何实现互斥和同步，具体怎么操作
 >
 
-#### **P、V操作**
+#### P、V操作
 
 - `sem`表示资源的数量
 - P：`sem`减1后，若`sem<0`则阻塞，否则线程继续
 - V：`sem`加1后，若`sem<=0`则唤醒阻塞的线程
 - 具有原子性
 
-# 反射
 
-## 动态代理
+# SPI(待完善)
 
-创建动态代理实例`Proxy.newProxyInstance(classLoader, interfaces, invocationHandler)`三个参数分别代表如下：
+SPI全称为 `Service Provider Interface`，和API相同的是，他们都存在：
 
-- `classLoader`：目标对象的类加载起
-- `interfaces`：目标对象实现的所有接口
-- `invocationHandler`：如何重写目标对象的方法过程
+- 服务接口
+- 服务实现类
 
-其中`invocationHandler`是一个接口，要实现`invoke`方法来重写目标对象的方法过程。
+不同的是：
 
-### JDK代理
-
-- 代理对象和目标对象实现同个接口
-
-### cglib代理
-
-- 代理对象继承自目标对象
-
-# 注解
-
-## 常用注解
-
-- `@Target`: 指定该注解可用于哪些元素上，如方法、字段、类等
-  - ElementType.TYPE：可以应用于类、接口和枚举上。
-  - ElementType.FIELD：可以应用于字段上。
-  - ElementType.METHOD：可以应用于方法上。
-  - ElementType.PARAMETER：可以应用于方法参数上。
-  - ElementType.CONSTRUCTOR：可以应用于构造函数上。
-  - ElementType.LOCAL_VARIABLE：可以应用于局部变量上。
-  - ElementType.ANNOTATION_TYPE：可以应用于注解上。
-  - ElementType.PACKAGE：可以应用于包声明上。
-  - ElementType.TYPE_PARAMETER：可以应用于类型参数上。
-- `@Retention`: 指定注解的存活时间，如编译、类加载、运行时
-  - RetentionPolicy.SOURCE：注解仅在源代码中保留，编译时会被丢弃。
-  - RetentionPolicy.CLASS：注解在编译时保留，在类加载时被丢弃。
-  - RetentionPolicy.RUNTIME：注解在运行时保留，可以通过反射机制读取。
-
-## lombok
-
-### @Builder
-
-`@Builder`注解主要是帮助省去了`set`方法，通过流式编程的方式为对象的每个成员变量赋值，例如
-
-```java
-// Studeten包含sno, sname, sage, sphone等成员变量
-Student.builder()
-       .sno( "001" )
-       .sname( "admin" )
-       .sage( 18 )
-       .sphone( "110" )
-       .build();
-```
+- API的服务接口和实现类都是由服务实现方提供的，调用方仅是调用它们提供的接口；
+- SPI的服务接口是由服务调用方提供，然后由实现方提供服务实现类，调用方通过接口调用实现类。
