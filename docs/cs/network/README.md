@@ -13,6 +13,8 @@
     - [路由信息协议RIP](#路由信息协议rip)
     - [网际控制报文协议ICMP](#网际控制报文协议icmp)
     - [VPN和NAT](#vpn和nat)
+- [NAT 协议](#nat-协议)
+  - [作用](#作用)
 
 # 模型分层
 
@@ -203,3 +205,16 @@ VPN: Virtual Private Network。虚拟专用网络。利用公网作为机构各�
 NAT: Network Address Translation。网络地址转换。将内部私有地址转换为公网地址，从而实现公网访问内部网络。
 
 但由于NAT转换的内部私有地址和公网地址要一一对应，就有了改进版的`NAPT`(Network Address and Port Translation)技术，即将内部私有地址和公网地址以及端口号一一对应。
+
+# NAT 协议
+
+NAT协议是一种将内部私有地址转换为公网地址的技术，从而实现公网访问内部网络的功能。
+
+![20230525222712](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230525222712.png)
+
+如上图3->4过程中，能从`138.76.29.7:5001`转换为`10.0.0.1:3345`是因为在前面的1->2过程中往路由器的NAT转换表中写入了该映射关系
+
+## 作用
+
+- 隐藏内部网络结构
+- 提高网络安全性
