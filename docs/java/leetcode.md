@@ -5,6 +5,8 @@
 - [二叉树](#二叉树)
   - [层序遍历](#层序遍历)
   - [平衡二叉搜索树](#平衡二叉搜索树)
+- [数组](#数组-1)
+  - [滑动窗口](#滑动窗口)
 - [回溯算法](#回溯算法)
   - [N皇后](#n皇后)
 - [动态规划](#动态规划)
@@ -49,6 +51,7 @@ while(left < right){ // 此时是[left,right)
 ```
 
 ### 35.搜索插入位置
+
 # 二叉树
 
 ## 层序遍历
@@ -135,6 +138,37 @@ class Solution {
                 balanceBST(list, middle + 1, right));
     }
 }
+```
+
+# 数组
+
+## 滑动窗口
+
+代表题目：[209.长度最小的子数组](https://leetcode-cn.com/problems/minimum-size-subarray-sum/)
+
+这道题中要求长度最小的子数组，滑动窗口在这道题的思路就是：
+
+- 只用一个for循环，当窗口内的元素大于等于目标数时，把窗口从左向右缩减
+
+```java
+for (int fastIndex = 0; fastIndex < length; fastIndex++) {
+    sum += nums[fastIndex];
+    while (sum >= target) {
+        // 向左缩减的同时比较此时窗口长度是否最小
+        res = Math.min(res, fastIndex - slowIndex + 1);
+        sum -= nums[slowIndex++];
+    }
+}
+```
+
+- 本题要注意的细节是：
+
+```java
+// 窗口长度res一开始是整数最大值
+int res = Integer.MAX_VALUE;
+...
+// 如果数组内所有元素加起来都小于目标数，要返回0，不能直接返回res
+return res == Integer.MAX_VALUE ? 0 : res;
 ```
 
 # 回溯算法
@@ -231,7 +265,6 @@ public List<List<String>> solveNQueens(int n) {
 ```
 
 完整代码见[这里](https://programmercarl.com/0051.N%E7%9A%87%E5%90%8E.html#java)
-
 
 # 动态规划
 
