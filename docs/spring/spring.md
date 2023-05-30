@@ -7,9 +7,29 @@
     - [常见的实现类](#常见的实现类)
 - [AOP](#aop)
   - [基于XML的AOP模板](#基于xml的aop模板)
-- [Spring整合事务](#spring整合事务)
+- [Spring事务](#spring事务)
+  - [Spring事务的关键接口](#spring事务的关键接口)
+    - [PlatformTransactionManager](#platformtransactionmanager)
+    - [TransactionDefinition](#transactiondefinition)
+    - [TransactionStatus](#transactionstatus)
+  - [事务的传播行为](#事务的传播行为)
+    - [REQUIRED(默认)](#required默认)
+    - [REQUIRES\_NEW](#requires_new)
+    - [NESTED](#nested)
+    - [MANDATORY](#mandatory)
+    - [SUPPORTS](#supports)
+    - [NOT\_SUPPORTED](#not_supported)
+    - [NEVER](#never)
+  - [事务隔离级别](#事务隔离级别)
+    - [DEFAULT](#default)
+    - [READ\_UNCOMMITTED](#read_uncommitted)
+    - [READ\_COMMITTED](#read_committed)
+    - [REPEATABLE\_READ](#repeatable_read)
+    - [SERIALIZABLE](#serializable)
   - [Transactional注解](#transactional注解)
-  - [事务的传播规则(待完善)](#事务的传播规则待完善)
+    - [注解工作原理](#注解工作原理)
+    - [属性说明](#属性说明)
+    - [自调用问题](#自调用问题)
 
 # 常用注解
 
@@ -138,9 +158,161 @@ public class UserRegisteredEvent extends ApplicationEvent {
 </aop:config>
 ```
 
-# Spring整合事务
+# Spring事务
+
+## Spring事务的关键接口
+
+### PlatformTransactionManager
+
+事务管理接口，主要包含3个方法：
+
+- 获取事务
+- 提交事务
+- 回滚事务
+
+```java
+public interface PlatformTransactionManager {
+    //获得事务
+    TransactionStatus getTransaction(@Nullable TransactionDefinition var1) throws TransactionException;
+    //提交事务
+    void commit(TransactionStatus var1) throws TransactionException;
+    //回滚事务
+    void rollback(TransactionStatus var1) throws TransactionException;
+}
+```
+
+### TransactionDefinition
+
+事务的属性，包含：
+
+- 隔离级别
+- 传播行为
+- 回滚规则
+- 是否只读
+- 事务超时
+
+```java
+public interface TransactionDefinition {
+    // ...省略其中包含的枚举信息
+    // 返回事务的传播行为，默认值为 REQUIRED。
+    int getPropagationBehavior();
+    //返回事务的隔离级别，默认值是 DEFAULT
+    int getIsolationLevel();
+    // 返回事务的超时时间，默认值为-1。如果超过该时间限制但事务还没有完成，则自动回滚事务。
+    int getTimeout();
+    // 返回是否为只读事务，默认值为 false
+    // 只读事务是不对数据进行操作，仅做查询的事务
+    boolean isReadOnly();
+
+    @Nullable
+    String getName();
+}
+```
+
+### TransactionStatus
+
+事务的状态，直接看源码：
+
+```java
+public interface TransactionStatus{
+    boolean isNewTransaction(); // 是否是新的事务
+    boolean hasSavepoint(); // 是否有恢复点
+    void setRollbackOnly();  // 设置为只回滚
+    boolean isRollbackOnly(); // 是否为只回滚
+    boolean isCompleted; // 是否已完成
+}
+```
+
+## 事务的传播行为
+
+先对下面的术语解释：
+
+- 外部方法、内部方法：
+
+```java
+// aMethod是外部方法
+public void aMethod(){
+  // bMethod是内部方法
+    bMethod();
+}
+public void bMethod(){
+    //...
+}
+```
+
+事务的传播行为关系到不同方法之间的调用，如果内部方法出现异常，是否要同时回滚内部和外部方法的事务。
+
+### REQUIRED(默认)
+
+- 外部方法没有开启事务，传播行为为`REQUIRED`的内部方法为开启自己的事务
+- 外部方法开启了事务，内部方法加入外部方法的事务，出现异常后同时回滚
+
+### REQUIRES_NEW
+
+不管外部方法是否开启事务，传播行为为`REQUIRES_NEW`的内部方法都会开启自己的事务
+
+- 外部方法异常回滚 -> 内部方法不回滚
+- 内部方法异常回滚 -> 外部方法也回滚
+
+> 内部方法异常会被外部方法的事务管理机制捕捉到
+
+### NESTED
+
+和`REQUIRES_NEW`反过来:
+
+- 外部方法异常回滚 -> 内部方法也回滚
+- 内部方法异常回滚 -> 外部方法不回滚
+
+### MANDATORY
+
+如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。
+
+### SUPPORTS
+
+如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
+
+### NOT_SUPPORTED
+
+以非事务方式运行，如果当前存在事务，则把当前事务挂起。
+
+### NEVER
+
+以非事务方式运行，如果当前存在事务，则抛出异常。
+
+## 事务隔离级别
+
+### DEFAULT
+
+采用指定数据库的隔离级别：
+
+- MySQL: `REPEATABLE_READ`
+- Oracle: `READ_COMMITTED`
+
+### READ_UNCOMMITTED
+
+允许读取尚未提交的数据变更，可能会导致脏读、幻读或不可重复读，是最低的隔离级别
+
+> 脏读、幻读、不可重复读的解释点[这里](../DataBase/MySQL.md#并发事务的问题)
+
+### READ_COMMITTED
+
+允许读取并发事务已经提交的数据，可以阻止脏读，但是幻读或不可重复读仍有可能发生
+
+### REPEATABLE_READ
+
+对同一字段的多次读取结果都是一致的，可以阻止脏读和不可重复读，但幻读仍有可能发生。
+
+### SERIALIZABLE
+
+最高级别，事务都是串行执行，可以阻止脏读、不可重复读和幻读，但会影响程序性能。
 
 ## Transactional注解
+
+### 注解工作原理
+
+基于AOP实现，如果一个类或方法被`@Transaction`标注，Spring容器会创建一个代理类。实际调用的时候是调用`TransactionInterceptor`中的`invoke()`方法
+
+### 属性说明
 
 - `rollbackFor`指定回滚的异常类型，`propagation`指定事务的传播行为，例如：
 
@@ -159,4 +331,10 @@ public boolean rollbackOn(Throwable ex) {
 
 - 不能回滚被`try...catch`捕获的异常
 
-## 事务的传播规则(待完善)
+### 自调用问题
+
+因为`@Transactional`是基于AOP实现的，自调用无法调用到代理类，所以事务无法生效，解决方法：
+
+- 利用AspectJ取代String AOP代理
+
+> 自调用：一个类中的方法调用了该类中的另一个方法，例如：`this.method`
