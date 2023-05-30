@@ -1,4 +1,5 @@
 -集合中的元素代表的字段名 [配置文件](#配置文件)
+
 - [配置文件](#配置文件)
 - [Mapper xml文件的使用](#mapper-xml文件的使用)
   - [xml文件获取参数值的两种方式 (重点)](#xml文件获取参数值的两种方式-重点)
@@ -22,6 +23,10 @@
   - [查询缓存的顺序](#查询缓存的顺序)
 - [逆向工程(Generator)](#逆向工程generator)
   - [配置文件参考](#配置文件参考)
+- [面试问题](#面试问题)
+  - [DAO接口的实现原理?](#dao接口的实现原理)
+  - [DAO接口中的方法能实现重载吗?](#dao接口中的方法能实现重载吗)
+  - [分页插件的原理？](#分页插件的原理)
 
 # 配置文件
 
@@ -414,4 +419,71 @@ select <include refid="selectColumns"/> from t_user
         <table tableName="t_bank" domainObjectName="Bank"/>
     </context>
 </generatorConfiguration>
+```
+
+# 面试问题
+
+## DAO接口的实现原理?
+
+例如
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mb.mapper.UserMapper">
+```
+
+```java
+package com.mb.mapper;
+public interface UserMapper {...}
+```
+
+接口文件的全限定名即xml文件中`namespace`的值，其中的方法名对应`MappedStatement`的id值，id要求不能重复。
+
+Mapper接口没有实现类，因为当调用接口方法时，会通过接口`全限定名+方法名`定位到唯一的`MappedStatement`，然后执行SQL语句。
+
+> 全限定名 = 包名 + 类名；
+>
+> `MappedStatement`是MyBatis中的一个类，用于封装SQL语句，每一个`<select>`, `<insert>`, `<update>`等标签都会被解析成一个`MappedStatement`对象。
+
+## DAO接口中的方法能实现重载吗?
+
+可以，但是要求方法的参数不同，例如：
+
+```java
+/**
+* Mapper接口里面方法重载
+*/
+List<Student> getAllStu();
+List<Student> getAllStu(@Param("id") Integer id);
+```
+
+```xml
+<select id="getAllStu" resultType="com.pojo.Student">
+  select * from student
+  <where>
+    <if test="id != null">
+      id = #{id}
+    </if>
+  </where>
+</select>
+```
+
+可以看出，重载在接口文件的方法中要求参数不一致，但是在映射文件中，则通过动态SQL来实现。
+
+**DAO接口可以有多个重载方法，但是对应的`MappedStatement`是同一个id**
+
+## 分页插件的原理？
+
+通过拦截器拦截待执行的sql，然后重写sql，例如：
+
+```sql
+select _ from student
+```
+拦截后重写为：
+
+```sql
+select t._ from （select \* from student）t limit 0，10
 ```
