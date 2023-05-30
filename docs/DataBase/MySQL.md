@@ -46,6 +46,8 @@
     - [刷盘策略](#刷盘策略)
     - [redo日志的读写策略](#redo日志的读写策略)
   - [binlog日志](#binlog日志)
+    - [binlog和redolog的区别](#binlog和redolog的区别)
+  - [undo log](#undo-log)
 - [数据库的逻辑架构](#数据库的逻辑架构)
   - [服务器处理客户端请求](#服务器处理客户端请求)
 - [索引](#索引)
@@ -819,6 +821,34 @@ binlog主要用于数据库之间同步，保持数据一致性。记录的内�
 ![20230525220002](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230525220002.png)
 
 但如果每次记录都采用`row`格式会消耗大量磁盘来存储，以及同步时IO影响执行效率。因此有了`mixed`方案，MySQL会判断SQL语句是否引起数据不一致，是则用`row`格式，不是则用`statement`格式。
+
+### binlog和redolog的区别
+
+1. 写入时机不同：
+
+- `redo log`在事务提交前的执行过程中可以不断写入
+- `bin log`只在提交事务时才写入
+
+2. 可能导致的问题：
+
+可能导致`redo log`和`bin log`的逻辑不一致，例如更新数据时发生宕机，此时事务还未提交，`redo log`已经写入磁盘，但`bin log`还未写入磁盘。这样在恢复数据时可能会造成主库和从库之间数据不一致
+
+3. 解决方案：
+
+InnoDB为解决该问题，将`redo log`写入拆解为两个步骤 -> `prepare`和`commit`，如下图所示：
+
+![20230530202726](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230530202726.png)
+
+在恢复数据时如果发现：
+
+- `redo log`除于`prepare`阶段
+- 没有对应的`bin log`
+
+满足上述两个条件时，则会进行事务回滚。但如果存在对应的`bin log`日志且`redo log`处于`prepare`阶段，就会提交事务恢复数据。
+
+## undo log
+
+undo log是用来实现[MVCC](#read-view)的，主要用于回滚数据，保证事务的隔离性和一致性。
 
 # 数据库的逻辑架构
 
