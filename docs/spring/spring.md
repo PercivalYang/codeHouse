@@ -3,6 +3,7 @@
 - [容器](#容器)
   - [BeanFactory](#beanfactory)
   - [ApplicationContext](#applicationcontext)
+    - [事件监听和发送](#事件监听和发送)
     - [常见的实现类](#常见的实现类)
 - [AOP](#aop)
   - [基于XML的AOP模板](#基于xml的aop模板)
@@ -29,12 +30,61 @@
 
 ## ApplicationContext
 
-是一个接口，具备的功能有：
+是一个接口，相比`BeanFactory`多出的功能有：
 
 - 国际化
 - 通过通配符获取Resource资源
+
+  ```java
+  context.getResource("classpath*:*.xml");
+  ```
+
 - 整合Environment环境
+
+  ```java
+  context.getEnvironment().getProperty("os.name");
+  ```
+
 - 事件的监听与发送（帮助事件解耦）
+
+### 事件监听和发送
+
+该功能常用来进行模块之间的解耦，例如用户注册(`Componet1`)和短信验证(`Componet2`)两个模块
+
+```java
+@Componet
+public class Component1 {
+    @Autowired
+    private ApplicationEventPublisher context;
+
+    public void register() {
+        log.debug("用户注册");
+        // 注册成功后发布事件给监听者
+        context.publishEvent(new UserRegisteredEvent(this));
+    }
+}
+```
+
+```java
+@Componet
+public class Component2 {
+    // 监听事件注解
+    @EventListener
+    public void sendSms(UserRegisteredEvent event) {
+        log.debug("发送短信");
+    }
+}
+```
+
+这样就完成了两个模块的解耦，其中`UserRegisteredEvent`是自定义类，继承自`ApplicationEvent`，如下：
+
+```java
+public class UserRegisteredEvent extends ApplicationEvent {
+    public UserRegisteredEvent(Object source) {
+        super(source);
+    }
+}
+```
 
 ### 常见的实现类
 
