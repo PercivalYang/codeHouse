@@ -1,3 +1,11 @@
+- [包装类型](#包装类型)
+  - [包装类型常量池](#包装类型常量池)
+  - [包装类型的用处](#包装类型的用处)
+  - [拆箱和装箱](#拆箱和装箱)
+  - [自动装箱和拆箱的NPE问题](#自动装箱和拆箱的npe问题)
+- [字符串String](#字符串string)
+  - [StringBuilder](#stringbuilder)
+    - [append原理](#append原理)
 - [注解和枚举](#注解和枚举)
   - [注解](#注解)
     - [常用注解](#常用注解)
@@ -54,6 +62,97 @@
     - [信号量（待完善）](#信号量待完善)
       - [P、V操作](#pv操作)
 - [SPI(待完善)](#spi待完善)
+
+# 包装类型
+
+例如：`Integer`、`Long`、`Float`、`Double`、`Boolean`、`Byte`、`Character`、`Short`
+
+包装类型和基本类型的区别：
+
+- 包装类型是引用类型，基本类型是值类型
+- 包装类型可以为`null`，基本类型不可以(包装类型不赋值默认是`null`)
+
+## 包装类型常量池
+
+- `Byte`、`Short`、`Integer`、`Long`：[-128, 127]
+- `Boolean`：`true`、`false`
+- `Float`、`Double`：没有常量池
+- `Character`: [0, 127]
+
+## 包装类型的用处
+
+- 基本类型都有默认值，而包装类型可以为`null`
+- 泛型不能是基本类型，因为基本类型不是`Object`子类，所以需要包装类型
+
+## 拆箱和装箱
+
+- 拆箱：将包装类型转换为基本类型
+- 装箱：将基本类型转换为包装类型
+
+例如：
+
+```java
+// 装箱
+Integer i = 40;
+// 拆箱
+int i = new Integer(40);
+```
+
+等价于：
+
+```java
+// 装箱
+Integer i = Integer.valueOf(40);
+// 拆箱
+int i = i.intValue();
+```
+
+## 自动装箱和拆箱的NPE问题
+
+《阿里巴巴开发手册》
+
+![20230531150356](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230531150356.png)
+
+先来看什么情况下会触发NPE：
+
+![20230531150636](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230531150636.png)
+
+自动拆箱时发生的NPE问题是由于包装类型对象本身是`null`，但拆箱(以`int`为例)会调用`.intvalue()`方法，出发NPE上图的第一个条件，就会抛出NPE异常。
+
+
+# 字符串String
+
+## StringBuilder
+
+### append原理
+
+
+```java
+@Override
+public StringBuilder append(String str) {
+    super.append(str);
+    return this;
+}
+```
+
+先看源码，它是调用了其父类的`append`方法，其父类`AbstractStringBuilder`的`append`方法如下：
+
+```java
+public AbstractStringBuilder append(String str) {
+    // 因为String不是基本类型可以为null
+    if (str == null)
+        // appendNull是将为null的String对象转换为"null"字符串
+        return appendNull();
+    int len = str.length();
+    // 检查char数组是否需要扩容
+    ensureCapacityInternal(count + len);
+    // 将String对象转换为char数组，同时拷贝到StringBuilder中的char数组之后
+    // value是AbstractStringBuilder对象的char数组
+    str.getChars(0, len, value, count);
+    count += len;
+    return this;
+}
+```
 
 # 注解和枚举
 
@@ -457,7 +556,6 @@ Asynchronous I/O，即异步IO
 
 - 代理对象继承自目标对象
 
-
 # 网络编程
 
 ![20230426155332](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230426155332.png)
@@ -740,7 +838,6 @@ if (lock.tryLock(1, TimeUnit.SECONDS)) {
 - P：`sem`减1后，若`sem<0`则阻塞，否则线程继续
 - V：`sem`加1后，若`sem<=0`则唤醒阻塞的线程
 - 具有原子性
-
 
 # SPI(待完善)
 
