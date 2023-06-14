@@ -1,11 +1,5 @@
 - [Redis](#redis)
   - [缓存](#缓存)
-  - [缓存雪崩](#缓存雪崩)
-    - [大量数据同时过期](#大量数据同时过期)
-    - [Redis故障宕机](#redis故障宕机)
-  - [缓存击穿](#缓存击穿)
-  - [缓存穿透](#缓存穿透)
-    - [布隆过滤器](#布隆过滤器)
   - [Spring Cache](#spring-cache)
     - [注解使用](#注解使用)
 - [MQ](#mq)
@@ -13,14 +7,14 @@
   - [RabbitMQ](#rabbitmq)
   - [SpringAMQP](#springamqp)
     - [AMQP中不同的消息队列](#amqp中不同的消息队列)
-
+- [Nacos](#nacos)
+  - [基本概念](#基本概念)
 
 # Redis
 
 ## 缓存
 
 **缓存预热**：业务刚上线时，提前将缓存数据构建，而不是等用户访问触发后才构建
-
 
 ## Spring Cache
 
@@ -43,7 +37,7 @@ MessageQueue：消息队列，事件驱动架构中的Broker。常用消息队�
 
 - 降低耦合度
 - 提升吞吐量
-- 隔离模块故障 
+- 隔离模块故障
 - 流量削峰
 
 **缺点：**
@@ -128,7 +122,7 @@ FanoutExchange中的交换机采用**广播机制**来转发消息
 @RabbitListener(bindings = @QueueBinding(
             value = @Queue(name = "direct.queue1"),
             exchange = @Exchange(name = "itcast.direct", type = ExchangeTypes.DIRECT),
-	          key = {"red", "blue"}
+           key = {"red", "blue"}
 ))
 public void listenDirectQueue1(String msg){
     System.out.println("消费者接收到direct.queue1的消息：【" + msg + "】");
@@ -154,7 +148,43 @@ rabbitTemplate.convertAndSend(exchangeName, "china.weather", message);
 而在Listener处的注解绑定和DirectExchange相似，只对`key`和`type`修改如下：
 
 ```java
-	key = "china.#" 以及 type = ExchangeTypes.TOPIC
+ key = "china.#" 以及 type = ExchangeTypes.TOPIC
 ```
 
 ![topicExchange](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/topicExchange.png)
+
+# Nacos
+
+## 基本概念
+
+服务的注册与发现流程图：
+
+![image-20210713220104956](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/image-20210713220104956.png)
+
+注册中心的作用主要是：
+
+- 服务注册: 服务提供者向注册中心注册自己的服务
+- 服务发现: 服务消费者从注册中心获取服务提供者的信息
+- 服务健康检查: 服务提供者定时向注册中心发送心跳，注册中心根据心跳信息判断服务是否可用
+
+**临时实例**和**非临时实例**
+
+- 临时实例会主动向Nacos发送心跳，如果Nacos在一定时间内没有收到心跳，就会将该实例从服务列表中移除
+- 非临时实例是由Nacos主动询问实例是否存活，如果没有回复，Nacos会将该实例标注故障，但不会自动从列表中删除
+
+**集群配置**和**环境隔离(命名空间)**
+
+集群设置主要针对不同地区配置，同一地区(集群)中服务的互相调用，延迟会更低
+
+在Nacos后台管理系统中的命名空间中，默认存在public，可以通过新建命名空间来实现环境隔离，即不同命名空间下的服务无法被发现
+
+需要在程序中配置：
+
+```yml
+spring:
+  cloud:
+    nacos:
+      discovery:
+        cluster-name: HZ # 集群名称
+        namespace: 230f04c0-25b9-454a-b6a8-9bf3234d5d54 # 命名空间dev的ID
+```

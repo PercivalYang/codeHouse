@@ -141,6 +141,36 @@
 
 比`Set`多了一个权重，可以用来做排行榜。命令类似，将`Set`命令首字母`S`换成`Z`即可。
 
+## 消息队列
+
+### 消费者组
+
+`XGROUP`：创建消费者组，示例：
+
+```redis
+XGROUP CREATE key groupName ID
+```
+
+- key: 队列名称
+- goupName: 消费者组名称
+- ID: `0`代表队列第一个消息; `$`代表最后一个消息
+
+`XREADGROUP`：读取消息，示例：
+
+```redis
+XREADGROUP GROUP groupName consumerName COUNT 1 BLOCK time STREAMS key ID
+```
+
+- groupName: 消费者组名称
+- consumerName: 消费者名称
+- COUNT: 一次读取的消息数量
+- BLOCK: 阻塞时间，当队列中没有消息时，阻塞等待的时间
+- STREAMS key: 指定要读取的队列名称
+- ID:
+  - `0`: 读取`pending-list`中的第一条消息
+  - `>`: 表示读取尚未处理的(没有ACK)消息
+  - `$`: 同上
+
 # SpringData
 
 依赖，配合SpringBoot开发使用：
