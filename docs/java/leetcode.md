@@ -2,6 +2,9 @@
   - [二分法(待完善)](#二分法待完善)
     - [两种不同的写法](#两种不同的写法)
     - [35.搜索插入位置](#35搜索插入位置)
+- [链表](#链表)
+  - [俩俩交换](#俩俩交换)
+  - [反转链表](#反转链表)
 - [二叉树](#二叉树)
   - [层序遍历](#层序遍历)
   - [平衡二叉搜索树](#平衡二叉搜索树)
@@ -51,6 +54,70 @@ while(left < right){ // 此时是[left,right)
 ```
 
 ### 35.搜索插入位置
+
+# 链表
+
+## 俩俩交换
+
+题目链接：[link](https://leetcode.cn/problems/swap-nodes-in-pairs/)
+
+题目重点：
+
+- 画图
+- 设置伪头节点：dummy
+
+![20230614222852](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230614222852.png)
+
+思路如上图所示，画图的目的是为了理清楚前后逻辑，以及哪些变量需要设置临时变量进行保存
+
+```java
+public ListNode swapPairs(ListNode head) {
+    ListNode dummy = new ListNode(-1, head);
+    ListNode cur = dummy;
+    while (cur.next != null && cur.next.next != null) {
+        // 步骤一和步骤二的影响需要保存的变量
+        ListNode temp1 = cur.next;
+        ListNode temp2 = cur.next.next.next;
+
+        // 按照步骤交换
+        cur.next = cur.next.next;
+        cur.next.next = temp1;
+        cur.next.next.next = temp2;
+
+        // 变更完记得移动指针
+        cur = cur.next.next;
+    }
+    return dummy.next;
+}
+```
+
+## 反转链表
+
+题目链接：[link](https://leetcode-cn.com/problems/reverse-linked-list/)
+
+两种方法：双指针、递归
+
+- 双指针：将当前指针`cur`的next指向前一个指针`prev`，遍历完链表后返回`prev`指针
+
+> 返回`prev`指针是因为遍历完链表后，之前链表的尾节点成为当前的头节点，此时`prev`指针指向的是尾节点，也就是反转后的头节点
+
+- 递归：思路和双指针一样
+
+```java
+public ListNode reverseList(ListNode head) {
+    return reverseList(null, head);
+}
+
+private ListNode reverseList(ListNode pre, ListNode head) {
+    if (head == null) {
+        // 遍历完一样返回的是pre，原因同上
+        return pre;
+    }
+    ListNode temp = head.next;
+    head.next = pre;
+    return reverseList(head, temp);
+}
+```
 
 # 二叉树
 
