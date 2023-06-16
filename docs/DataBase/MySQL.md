@@ -841,7 +841,7 @@ InnoDB为解决该问题，将`redo log`写入拆解为两个步骤 -> `prepare`
 
 在恢复数据时如果发现：
 
-- `redo log`除于`prepare`阶段
+- `redo log`处于`prepare`阶段
 - 没有对应的`bin log`
 
 满足上述两个条件时，则会进行事务回滚。但如果存在对应的`bin log`日志且`redo log`处于`prepare`阶段，就会提交事务恢复数据。
