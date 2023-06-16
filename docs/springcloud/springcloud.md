@@ -9,6 +9,10 @@
     - [AMQP中不同的消息队列](#amqp中不同的消息队列)
 - [Nacos](#nacos)
   - [基本概念](#基本概念)
+  - [多环境共享配置](#多环境共享配置)
+- [Feign](#feign)
+  - [日志、连接池配置](#日志连接池配置)
+- [Gateway](#gateway)
 
 # Redis
 
@@ -187,4 +191,72 @@ spring:
       discovery:
         cluster-name: HZ # 集群名称
         namespace: 230f04c0-25b9-454a-b6a8-9bf3234d5d54 # 命名空间dev的ID
+```
+
+## 多环境共享配置
+
+首先看一下Nacos的配置文件的文件名组成：
+
+`[application-name]-[profiles].yaml`，例如：`userservice-dev.yaml`
+
+当存在多种配置文件时，配置文件的优先级(以`userservice`为例)：
+
+`userservice-dev.yaml` > `userservice.yaml` > 本地配置
+
+优先级主要针对不同配置文件中出现同个字段时，高优先级的配置文件会覆盖掉低优先级的内容
+
+# Feign
+
+## 日志、连接池配置
+
+![20230615155730](https://raw.githubusercontent.com/PercivalYang/imgsSaving/main/imgs/20230615155730.png)
+
+日志还可以通过配置类设置，如下：
+
+```java
+public class DefaultFeignConfiguration {
+    @Bean
+    public Logger.Level logLevel() {
+        return Logger.Level.BASIC;
+    }
+}
+```
+
+在启动类加上注释，代表对全局配置:
+
+```java
+@EnableFeignClients(defaultConfiguration = DefaultFeignConfiguration.class)
+```
+
+# Gateway
+
+网关也是单独运行的Spring模块，代表配置如下
+
+```yml
+server:
+  port: 10010
+spring:
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      server-addr: nacos:8848 # nacos地址
+    gateway:
+      routes:
+        - id: user-service # 路由标示，必须唯一
+          uri: lb://userservice # 路由的目标地址
+          predicates: # 路由断言，判断请求是否符合规则
+            - Path=/user/** # 路径断言，判断路径是否是以/user开头，如果是则符合
+          # 局部过滤器
+          filters:
+            # 像请求头添加信息，在Java程序中可以通过request.getHeader("Truth")获取
+            # 或者通过@RequestHeader("Truth")的形参方式获取
+            - AddRequestHeader=Truth, local fileters
+        - id: order-service
+          uri: lb://orderservice
+          predicates:
+            - Path=/order/**
+      # 全局过滤器
+      default-filters:
+        - AddRequestHeader=Truth,Itcast is freaking awesome!
 ```
